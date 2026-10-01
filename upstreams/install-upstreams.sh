@@ -211,7 +211,11 @@ install_sysreptor() {
         sudo systemctl enable --now docker
         sudo mkdir -p "$install_dir"
         log_info "Downloading and running official SysReptor installer in $install_dir..."
-        (cd "$install_dir" && curl -sSL https://docs.sysreptor.com/install.sh | sudo bash)
+        if [ "$ASSUME_YES" = true ]; then
+            (cd "$install_dir" && export SYSREPTOR_LICENSE="" SYSREPTOR_ENCRYPT="n" && curl -sSL https://docs.sysreptor.com/install.sh | sudo -E bash)
+        else
+            (cd "$install_dir" && curl -sSL https://docs.sysreptor.com/install.sh | sudo bash)
+        fi
         log_success "SysReptor deployment completed! Web interface: http://localhost:8000"
     fi
 }
@@ -236,9 +240,13 @@ install_bloodhound() {
         log_info "Starting BloodHound CE stack via docker compose..."
         (cd "$install_dir" && sudo docker compose up -d)
         log_info "Waiting for BloodHound CE container to initialize..."
-        sleep 5
-        local initial_pw
-        initial_pw=$(cd "$install_dir" && sudo docker compose logs bloodhound 2>/dev/null | grep -i "initial password" || echo "Check 'docker compose logs bloodhound' for initial admin password")
+        local initial_pw=""
+        for _ in {1..12}; do
+            initial_pw=$(cd "$install_dir" && sudo docker compose logs bloodhound 2>/dev/null | grep -i "initial password" || true)
+            [ -n "$initial_pw" ] && break
+            sleep 2
+        done
+        [ -z "$initial_pw" ] && initial_pw="Check 'docker compose logs bloodhound' for initial admin password"
         log_success "BloodHound CE deployed successfully! Web interface: http://localhost:8080"
         log_info "$initial_pw"
         log_info "BloodHound stack and volumes are fully manageable in Portainer (https://localhost:7999)."
@@ -266,6 +274,10 @@ install_responder() {
         echo "  [DRY-RUN] sudo $install_dir/venv/bin/pip install -r $install_dir/requirements.txt"
         echo "  [DRY-RUN] Create launcher wrapper at $wrapper"
     else
+        if ! command -v python3 &>/dev/null || ! rpm -q python3-devel gcc &>/dev/null; then
+            log_info "Ensuring python3, python3-devel, and gcc are installed for Responder dependencies..."
+            sudo dnf install -y python3 python3-devel gcc || true
+        fi
         sudo mkdir -p /opt
         if [ -d "$install_dir/.git" ]; then
             log_info "Responder already exists. Pulling latest updates..."

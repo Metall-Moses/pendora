@@ -20,6 +20,8 @@ INSTALL_HYPRLAND=false
 INSTALL_ALACRITTY=false
 INSTALL_NVIM=false
 SET_HOSTNAME=false
+RUN_ALL=false
+RUN_BASIC=false
 SELECTED_CATEGORIES=()
 CUSTOM_FILES=()
 
@@ -178,6 +180,10 @@ run_pipx_install() {
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] pipx ensurepath"
     else
+        if ! command -v pipx &>/dev/null; then
+            log_info "pipx command not found. Installing pipx via dnf..."
+            sudo dnf install -y pipx
+        fi
         pipx ensurepath 2>/dev/null || true
     fi
 
@@ -187,7 +193,7 @@ run_pipx_install() {
             echo "  [DRY-RUN] pipx install $tool"
         else
             log_info "Running: pipx install $tool"
-            pipx install "$tool" || log_warn "pipx install failed for: $tool"
+            pipx install "$tool" || pipx upgrade "$tool" || log_warn "pipx install failed for: $tool"
         fi
     done
     log_success "Pipx processing complete."
@@ -230,6 +236,10 @@ deploy_zsh_config() {
         echo "  [DRY-RUN] cp \${SCRIPT_DIR}/zsh/.zshrc to /home/\$USER/.zshrc (with backup if existing)"
         echo "  [DRY-RUN] chsh -s \$(which zsh)"
     else
+        if ! command -v zsh &>/dev/null; then
+            log_info "zsh not found. Installing zsh packages via dnf..."
+            sudo dnf install -y zsh zsh-autosuggestions zsh-syntax-highlighting || true
+        fi
         if [ -f "$dest_zsh" ]; then
             local backup="${dest_zsh}.bak.$(date +%Y%m%d_%H%M%S)"
             log_info "Existing .zshrc found. Backing up to: $backup"
@@ -246,17 +256,21 @@ deploy_zsh_config() {
         fi
     fi
 }
+
 enable_hyprland_copr() {
     log_info "Enabling Hyprland COPR repository (lionheartp/Hyprland)..."
-    local cmd="sudo dnf copr enable -y lionheartp/Hyprland"
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] $cmd"
+        echo "  [DRY-RUN] sudo dnf install -y dnf-plugins-core"
+        echo "  [DRY-RUN] sudo dnf copr enable -y lionheartp/Hyprland"
     else
-        $cmd
+        if ! rpm -q dnf-plugins-core &>/dev/null; then
+            log_info "Ensuring dnf-plugins-core is installed..."
+            sudo dnf install -y dnf-plugins-core || true
+        fi
+        sudo dnf copr enable -y lionheartp/Hyprland
         log_success "Hyprland COPR repository enabled."
     fi
 }
-
 configure_screensharing_systemd() {
     echo
     echo -e "${BOLD}Configuring Hyprland Screensharing (Systemd User Target)${NC}"
@@ -427,6 +441,14 @@ while [[ $# -gt 0 ]]; do
             ASSUME_YES="-y"
             shift
             ;;
+        -c|--category)
+            if [ -z "${2:-}" ]; then
+                log_error "Option $1 requires an argument."
+                exit 1
+            fi
+            SELECTED_CATEGORIES+=("$2")
+            shift 2
+            ;;
         -p|--pipx)
             INSTALL_PIPX=true
             shift
@@ -440,6 +462,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -b|--basic)
+            RUN_BASIC=true
             INSTALL_PIPX=true
             INSTALL_UPSTREAMS=true
             INSTALL_ZSH=true
@@ -466,6 +489,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -a|--all)
+            RUN_ALL=true
             INSTALL_PIPX=true
             INSTALL_UPSTREAMS=true
             INSTALL_ZSH=true
@@ -495,91 +519,111 @@ check_distro
 check_non_root
 
 # Resolve files to process
+# Determine whether DNF packages should be installed
+RUN_PACKAGES=false
+
+if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_HYPRLAND" = true ]; then
+    RUN_PACKAGES=true
+elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$SET_HOSTNAME" = false ]; then
+    # Default invocation with no flags: install native packages (00-60)
+    RUN_PACKAGES=true
+fi
+
 TARGET_FILES=()
 
-if [ ${#CUSTOM_FILES[@]} -gt 0 ]; then
-    for f in "${CUSTOM_FILES[@]}"; do
-        if [ -f "$f" ]; then
-            TARGET_FILES+=("$f")
-        elif [ -f "${LISTS_DIR}/${f}" ]; then
-            TARGET_FILES+=("${LISTS_DIR}/${f}")
-        elif [ -f "${LISTS_DIR}/${f}.list" ]; then
-            TARGET_FILES+=("${LISTS_DIR}/${f}.list")
-        else
-            log_error "Could not resolve file: $f"
-            exit 1
-        fi
-    done
-elif [ ${#SELECTED_CATEGORIES[@]} -gt 0 ]; then
-    for cat in "${SELECTED_CATEGORIES[@]}"; do
-        matched=false
-        for list_file in "${LISTS_DIR}"/*"${cat}"*.list; do
-            if [ -f "$list_file" ]; then
-                TARGET_FILES+=("$list_file")
-                matched=true
+if [ "$RUN_PACKAGES" = true ]; then
+    if [ ${#CUSTOM_FILES[@]} -gt 0 ]; then
+        for f in "${CUSTOM_FILES[@]}"; do
+            if [ -f "$f" ]; then
+                TARGET_FILES+=("$f")
+            elif [ -f "${LISTS_DIR}/${f}" ]; then
+                TARGET_FILES+=("${LISTS_DIR}/${f}")
+            elif [ -f "${LISTS_DIR}/${f}.list" ]; then
+                TARGET_FILES+=("${LISTS_DIR}/${f}.list")
+            else
+                log_error "Could not resolve file: $f"
+                exit 1
             fi
         done
-        if [ "$matched" = false ]; then
-            log_error "No category list matching '$cat' found in ${LISTS_DIR}"
-            exit 1
-        fi
-    done
-else
-    # Default: process all files in order (skip 70-hyprland unless Hyprland requested)
-    for list_file in "${LISTS_DIR}"/*.list; do
-        if [ "$INSTALL_HYPRLAND" = false ] && [[ "$list_file" =~ "70-hyprland" ]]; then
-            continue
-        fi
-        [ -f "$list_file" ] && TARGET_FILES+=("$list_file")
-    done
-fi
-
-ALL_PACKAGES=()
-
-echo -e "${BOLD}Pendora - Native DNF Package Plan${NC}"
-echo "===================================================="
-
-for file in "${TARGET_FILES[@]}"; do
-    filename="$(basename "$file")"
-    log_info "Reading: ${BOLD}${filename}${NC}"
-    mapfile -t pkgs < <(parse_package_file "$file")
-    if [ ${#pkgs[@]} -gt 0 ]; then
-        for p in "${pkgs[@]}"; do
-            ALL_PACKAGES+=("$p")
+    elif [ ${#SELECTED_CATEGORIES[@]} -gt 0 ]; then
+        for cat in "${SELECTED_CATEGORIES[@]}"; do
+            matched=false
+            for list_file in "${LISTS_DIR}"/*"${cat}"*.list; do
+                if [ -f "$list_file" ]; then
+                    TARGET_FILES+=("$list_file")
+                    matched=true
+                fi
+            done
+            if [ "$matched" = false ]; then
+                log_error "No category list matching '$cat' found in ${LISTS_DIR}"
+                exit 1
+            fi
         done
-        echo "  -> Found ${#pkgs[@]} packages in ${filename}"
+    elif [ "$RUN_ALL" = true ]; then
+        for list_file in "${LISTS_DIR}"/*.list; do
+            [ -f "$list_file" ] && TARGET_FILES+=("$list_file")
+        done
+    elif [ "$INSTALL_HYPRLAND" = true ] && [ "$RUN_BASIC" = false ]; then
+        TARGET_FILES+=("${LISTS_DIR}/70-hyprland.list")
     else
-        echo "  -> 0 packages in ${filename}"
+        # Default or --basic: process 00-60 (skip 70-hyprland)
+        for list_file in "${LISTS_DIR}"/*.list; do
+            [[ "$list_file" =~ "70-hyprland" ]] && continue
+            [ -f "$list_file" ] && TARGET_FILES+=("$list_file")
+        done
     fi
-done
 
-echo "===================================================="
-log_info "Total native DNF packages to process: ${BOLD}${#ALL_PACKAGES[@]}${NC}"
+    ALL_PACKAGES=()
 
-if [ "$INSTALL_HYPRLAND" = true ]; then
-    enable_hyprland_copr
-fi
+    echo -e "${BOLD}Pendora - Native DNF Package Plan${NC}"
+    echo "===================================================="
 
-if [ "$DRY_RUN" = true ]; then
-    log_info "Dry run requested. Planned DNF command:"
-    echo
-    echo "sudo dnf install ${ASSUME_YES} ${ALL_PACKAGES[*]}"
-    echo
-else
-    if [ -z "$ASSUME_YES" ]; then
+    for file in "${TARGET_FILES[@]}"; do
+        filename="$(basename "$file")"
+        log_info "Reading: ${BOLD}${filename}${NC}"
+        mapfile -t pkgs < <(parse_package_file "$file")
+        if [ ${#pkgs[@]} -gt 0 ]; then
+            for p in "${pkgs[@]}"; do
+                ALL_PACKAGES+=("$p")
+            done
+            echo "  -> Found ${#pkgs[@]} packages in ${filename}"
+        else
+            echo "  -> 0 packages in ${filename}"
+        fi
+    done
+
+    echo "===================================================="
+    log_info "Total native DNF packages to process: ${BOLD}${#ALL_PACKAGES[@]}${NC}"
+
+    # Enable COPR if Hyprland packages are included
+    for f in "${TARGET_FILES[@]}"; do
+        if [[ "$f" =~ "70-hyprland" ]]; then
+            enable_hyprland_copr
+            break
+        fi
+    done
+
+    if [ "$DRY_RUN" = true ]; then
+        log_info "Dry run requested. Planned DNF command:"
         echo
-        read -rp "Proceed with DNF installation? [y/N]: " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            log_warn "DNF installation aborted by user."
+        echo "sudo dnf install ${ASSUME_YES} ${ALL_PACKAGES[*]}"
+        echo
+    else
+        if [ -z "$ASSUME_YES" ]; then
+            echo
+            read -rp "Proceed with DNF installation? [y/N]: " confirm
+            if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+                log_warn "DNF installation aborted by user."
+            else
+                log_info "Executing: sudo dnf install ${ASSUME_YES} ..."
+                sudo dnf install $ASSUME_YES "${ALL_PACKAGES[@]}"
+                log_success "DNF packages installed successfully."
+            fi
         else
             log_info "Executing: sudo dnf install ${ASSUME_YES} ..."
             sudo dnf install $ASSUME_YES "${ALL_PACKAGES[@]}"
             log_success "DNF packages installed successfully."
         fi
-    else
-        log_info "Executing: sudo dnf install ${ASSUME_YES} ..."
-        sudo dnf install $ASSUME_YES "${ALL_PACKAGES[@]}"
-        log_success "DNF packages installed successfully."
     fi
 fi
 
