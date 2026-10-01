@@ -733,6 +733,23 @@ if [ "$RUN_PACKAGES" = true ]; then
             log_success "DNF packages installed successfully."
         fi
     fi
+
+    # If Docker packages were installed, immediately enable service and add user to docker group
+    for f in "${TARGET_FILES[@]}"; do
+        if [[ "$f" =~ "60-docker" ]]; then
+            target_user="${SUDO_USER:-$USER}"
+            log_info "Enabling Docker service and adding '$target_user' to docker group..."
+            if [ "$DRY_RUN" = true ]; then
+                echo "  [DRY-RUN] sudo systemctl enable --now docker"
+                echo "  [DRY-RUN] sudo usermod -aG docker $target_user"
+            else
+                sudo systemctl enable --now docker 2>/dev/null || true
+                sudo usermod -aG docker "$target_user" 2>/dev/null || true
+                log_success "Docker service enabled and user '$target_user' added to docker group."
+            fi
+            break
+        fi
+    done
 fi
 
 # Configure screensharing systemd target if Hyprland is requested

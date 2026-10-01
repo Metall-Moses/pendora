@@ -200,23 +200,32 @@ install_hack_font() {
         log_success "Hack Nerd Font installed to $font_dir"
     fi
 }
-install_portainer() {
-    log_info "Configuring Docker service and deploying Portainer CE..."
+ensure_docker_ready() {
+    local target_user="${SUDO_USER:-${USER:-$(id -un)}}"
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo systemctl enable --now docker"
-        echo "  [DRY-RUN] sudo usermod -aG docker \$USER"
+        echo "  [DRY-RUN] sudo usermod -aG docker $target_user"
+        return 0
+    fi
+
+    if ! command -v docker &>/dev/null; then
+        log_error "docker command not found. Please install the Docker package list (pkg-lists/60-docker.list) first."
+        return 1
+    fi
+
+    log_info "Ensuring Docker service is active and user '$target_user' is in docker group..."
+    sudo systemctl enable --now docker 2>/dev/null || true
+    sudo usermod -aG docker "$target_user" 2>/dev/null || true
+}
+
+install_portainer() {
+    log_info "Configuring Docker service and deploying Portainer CE..."
+    ensure_docker_ready || return 1
+    if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo docker volume create portainer_data"
         echo "  [DRY-RUN] sudo docker run -d -p 7999:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest"
         echo "  [DRY-RUN] Web interface: https://localhost:7999"
     else
-        if ! command -v docker &>/dev/null; then
-            log_error "docker command not found. Please install the Docker package list (pkg-lists/60-docker.list) first."
-            return 1
-        fi
-        log_info "Enabling and starting Docker service..."
-        sudo systemctl enable --now docker
-        local target_user="${SUDO_USER:-${USER:-$(id -un)}}"
-        sudo usermod -aG docker "$target_user" || true
         log_info "Creating portainer_data volume..."
         sudo docker volume create portainer_data
         log_info "Deploying Portainer CE container..."
@@ -241,12 +250,7 @@ install_sysreptor() {
         echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_ENCRYPT='n' CONFIRM='y' CONFIRM_AUTOUPDATE='n' bash '$installer_script'"
         echo "  [DRY-RUN] SysReptor interface will be accessible at: http://localhost:8000"
     else
-        if ! command -v docker &>/dev/null; then
-            log_error "docker command not found. Please install the Docker package list (pkg-lists/60-docker.list) first."
-            return 1
-        fi
-        sudo systemctl enable --now docker
-
+        ensure_docker_ready || return 1
         # If SysReptor container stack is already running, skip re-installation
         if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^sysreptor-app"; then
             log_success "SysReptor container stack is already running! Web interface: http://localhost:8000"
@@ -296,11 +300,7 @@ install_bloodhound() {
         echo "  [DRY-RUN] BloodHound CE interface will be accessible at: http://localhost:8080"
         echo "  [DRY-RUN] Stack and volumes fully manageable in Portainer at: https://localhost:7999"
     else
-        if ! command -v docker &>/dev/null; then
-            log_error "docker command not found. Please install the Docker package list (pkg-lists/60-docker.list) first."
-            return 1
-        fi
-        sudo systemctl enable --now docker
+        ensure_docker_ready || return 1
         sudo mkdir -p "$install_dir"
         log_info "Downloading official BloodHound CE docker-compose.yml to $install_dir..."
         sudo curl -sSL https://ghst.ly/getbhce -o "$install_dir/docker-compose.yml"
