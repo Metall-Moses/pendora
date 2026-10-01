@@ -237,7 +237,8 @@ install_sysreptor() {
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo mkdir -p '$install_dir'"
         echo "  [DRY-RUN] curl -fsSL https://docs.sysreptor.com/install.sh -o '$installer_script'"
-        echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_LICENSE='' SYSREPTOR_ENCRYPT='n' CONFIRM='y' bash '$installer_script' < /dev/null"
+        echo "  [DRY-RUN] sed -i 's/read -p/# read -p/g' '$installer_script'"
+        echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_ENCRYPT='n' CONFIRM='y' CONFIRM_AUTOUPDATE='n' bash '$installer_script'"
         echo "  [DRY-RUN] SysReptor interface will be accessible at: http://localhost:8000"
     else
         if ! command -v docker &>/dev/null; then
@@ -245,24 +246,38 @@ install_sysreptor() {
             return 1
         fi
         sudo systemctl enable --now docker
+
+        # If SysReptor container stack is already running, skip re-installation
+        if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^sysreptor-app"; then
+            log_success "SysReptor container stack is already running! Web interface: http://localhost:8000"
+            return 0
+        fi
+
         sudo mkdir -p "$install_dir"
         log_info "Downloading official SysReptor installer..."
         curl -fsSL https://docs.sysreptor.com/install.sh -o "$installer_script"
         chmod +x "$installer_script"
 
+        # Neutralize all interactive read prompts to enable clean unattended execution
+        sed -i 's/read -p/# read -p/g' "$installer_script"
+
         log_info "Running SysReptor installer in unattended mode (Community Edition)..."
         local creds_file="${install_dir}/admin_credentials.txt"
 
-        # Execute installer with unattended environment variables and capture output
         (
             cd "$install_dir"
-            sudo env SYSREPTOR_LICENSE="" SYSREPTOR_ENCRYPT="n" CONFIRM="y" bash "$installer_script" < /dev/null
-        ) | sudo tee "$creds_file"
+            sudo env \
+                SYSREPTOR_LICENSE="" \
+                SYSREPTOR_ENCRYPT="n" \
+                CONFIRM="y" \
+                CONFIRM_AUTOUPDATE="n" \
+                bash "$installer_script"
+        ) 2>&1 | sudo tee "$creds_file"
 
         # Cleanup temporary installer script
         rm -f "$installer_script"
 
-        # Extract generated superuser password from credentials log
+        # Extract generated superuser credentials
         local generated_pw
         generated_pw=$(grep -i "^Password:" "$creds_file" 2>/dev/null | tail -n 1 || echo "")
         log_success "SysReptor deployment completed! Web interface: http://localhost:8000"
