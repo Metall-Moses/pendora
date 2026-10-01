@@ -19,6 +19,7 @@ INSTALL_ZSH=false
 INSTALL_HYPRLAND=false
 INSTALL_ALACRITTY=false
 INSTALL_NVIM=false
+INSTALL_WALLPAPER=false
 SET_HOSTNAME=false
 RUN_ALL=false
 RUN_BASIC=false
@@ -68,8 +69,9 @@ ${BOLD}Options:${NC}
   -T, --alacritty          Deploy Alacritty terminal configuration & Catppuccin Macchiato theme
   -N, --nvim               Deploy Neovim/LazyVim configuration & Catppuccin Macchiato theme
   -H, --hostname           Set system hostname to 'pendora'
-  -b, --basic              Basic pentest setup without Hyprland (00-60 DNF + pipx + upstreams + zsh + alacritty + nvim)
-  -a, --all                Full setup including Hyprland desktop stack
+  -B, --wallpaper          Deploy and apply Pendora custom wallpaper
+  -b, --basic              Basic pentest setup without Hyprland (00-60 DNF + pipx + upstreams + zsh + alacritty + nvim + wallpaper)
+  -a, --all                Full setup including Hyprland desktop stack & wallpaper
   --no-reboot              Do not reboot system after installation
 ${BOLD}Examples:${NC}
   $(basename "$0") --list
@@ -412,6 +414,66 @@ deploy_nvim_config() {
         log_success "Deployed Neovim & LazyVim Catppuccin configuration to $dest_nvim"
     fi
 }
+deploy_wallpaper() {
+    echo
+    echo -e "${BOLD}Deploying Pendora Desktop Wallpapers${NC}"
+    echo "===================================================="
+    local sys_wp_dir="/usr/share/backgrounds/pendora"
+    local target_user="${SUDO_USER:-$USER}"
+    local target_home
+    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
+    [ -z "$target_home" ] && target_home="$HOME"
+    local user_wp_dir="${target_home}/Pictures/wallpapers"
+    local default_wp="${sys_wp_dir}/wallpaper.svg"
+
+    if [ ! -d "${SCRIPT_DIR}/assets" ]; then
+        log_warn "Assets directory not found: ${SCRIPT_DIR}/assets"
+        return 0
+    fi
+
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] sudo mkdir -p $sys_wp_dir"
+        echo "  [DRY-RUN] sudo cp \${SCRIPT_DIR}/assets/wallpaper*.svg $sys_wp_dir/"
+        echo "  [DRY-RUN] mkdir -p $user_wp_dir"
+        echo "  [DRY-RUN] cp \${SCRIPT_DIR}/assets/wallpaper*.svg $user_wp_dir/"
+        echo "  [DRY-RUN] Set GNOME system-wide dconf default background to $default_wp"
+        echo "  [DRY-RUN] gsettings set org.gnome.desktop.background picture-uri 'file://$default_wp'"
+    else
+        log_info "Installing wallpapers to system library ($sys_wp_dir)..."
+        sudo mkdir -p "$sys_wp_dir"
+        sudo cp "${SCRIPT_DIR}/assets"/wallpaper*.svg "$sys_wp_dir"/
+        sudo chmod -R 644 "$sys_wp_dir"/*.svg 2>/dev/null || true
+        sudo chmod 755 "$sys_wp_dir"
+
+        log_info "Copying wallpapers to user library ($user_wp_dir)..."
+        mkdir -p "$user_wp_dir"
+        cp "${SCRIPT_DIR}/assets"/wallpaper*.svg "$user_wp_dir"/
+        if [ -n "${SUDO_USER:-}" ]; then
+            chown -R "${target_user}:${target_user}" "$user_wp_dir"
+        fi
+
+        # 1. Apply system-wide default for GNOME via dconf
+        local dconf_dir="/etc/dconf/db/local.d"
+        sudo mkdir -p "$dconf_dir"
+        sudo tee "${dconf_dir}/00-pendora-wallpaper" >/dev/null <<EOF
+[org/gnome/desktop/background]
+picture-uri='file://${default_wp}'
+picture-uri-dark='file://${default_wp}'
+picture-options='zoom'
+EOF
+        sudo dconf update 2>/dev/null || true
+
+        # 2. Apply to current user session via gsettings if desktop session is active
+        if command -v gsettings &>/dev/null; then
+            gsettings set org.gnome.desktop.background picture-uri "file://${default_wp}" 2>/dev/null || true
+            gsettings set org.gnome.desktop.background picture-uri-dark "file://${default_wp}" 2>/dev/null || true
+            gsettings set org.gnome.desktop.background picture-options 'zoom' 2>/dev/null || true
+        fi
+
+        log_success "Pendora wallpapers deployed and set as default desktop background."
+    fi
+}
+
 
 
 
@@ -481,12 +543,14 @@ while [[ $# -gt 0 ]]; do
             INSTALL_ZSH=true
             INSTALL_ALACRITTY=true
             INSTALL_NVIM=true
+            INSTALL_WALLPAPER=true
             SET_HOSTNAME=true
             INSTALL_HYPRLAND=false
             shift
             ;;
         -W|--hyprland)
             INSTALL_HYPRLAND=true
+            INSTALL_WALLPAPER=true
             shift
             ;;
         -T|--alacritty)
@@ -495,6 +559,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -N|--nvim|--neovim)
             INSTALL_NVIM=true
+            shift
+            ;;
+        -B|--wallpaper)
+            INSTALL_WALLPAPER=true
             shift
             ;;
         -H|--hostname)
@@ -509,6 +577,7 @@ while [[ $# -gt 0 ]]; do
             INSTALL_HYPRLAND=true
             INSTALL_ALACRITTY=true
             INSTALL_NVIM=true
+            INSTALL_WALLPAPER=true
             SET_HOSTNAME=true
             shift
             ;;
@@ -537,7 +606,7 @@ RUN_PACKAGES=false
 
 if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_HYPRLAND" = true ]; then
     RUN_PACKAGES=true
-elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$SET_HOSTNAME" = false ]; then
+elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_WALLPAPER" = false ] && [ "$SET_HOSTNAME" = false ]; then
     # Default invocation with no flags: install native packages (00-60)
     RUN_PACKAGES=true
 fi
@@ -673,6 +742,11 @@ fi
 # Deploy Neovim configuration if requested
 if [ "$INSTALL_NVIM" = true ]; then
     deploy_nvim_config
+fi
+
+# Deploy wallpaper if requested
+if [ "$INSTALL_WALLPAPER" = true ]; then
+    deploy_wallpaper
 fi
 
 # Set system hostname if requested

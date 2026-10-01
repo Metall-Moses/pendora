@@ -49,9 +49,9 @@ Pendora provides full flexibility over your graphical environment. You can choos
 
 | Mode | Flag | Target User / Use Case | Included Components |
 |---|---|---|---|
-| **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, hostname. **Zero Hyprland changes.** |
+| **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Hyprland changes.** |
 | **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Hyprland). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Hyprland compositor, Noctalia shell, COPR repo, screensharing systemd targets, and `.config/hypr` dotfiles. |
-| **Hyprland Only** | `--hyprland` (`-W`) | **Modular deployment** of just the desktop layer. | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, and deploys `.config/hypr`. |
+| **Hyprland Only** | `--hyprland` (`-W`) | **Modular deployment** of just the desktop layer. | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, deploys custom wallpapers, and deploys `.config/hypr`. |
 ---
 
 ## Requirements & Test Environment
@@ -188,10 +188,11 @@ Install only the specific components you need:
 
 # Deploy Neovim/LazyVim configuration & Catppuccin theme
 ./install.sh --nvim
+# Deploy and apply Pendora custom desktop wallpapers
+./install.sh --wallpaper
 
 # Set system hostname to 'pendora'
 ./install.sh --hostname
-
 # Run specific upstream targets directly
 cd upstreams
 ./install-upstreams.sh portainer sysreptor bloodhound devtunnel responder hack-font
