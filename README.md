@@ -1,11 +1,13 @@
-# Pendora <img src="https://cdn.simpleicons.org/fedora/51A2DA" width="30" height="30" alt="Fedora" style="vertical-align: middle;" />
+# Pendora <img src="assets/logo.svg" width="34" height="34" alt="Pendora" style="vertical-align: middle;" />
 
 [![Fedora](https://img.shields.io/badge/Fedora-51A2DA?style=flat-square&logo=fedora&logoColor=white)](https://fedoraproject.org/)
 [![Bash](https://img.shields.io/badge/Bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Lua](https://img.shields.io/badge/Lua-2C2D72?style=flat-square&logo=lua&logoColor=white)](https://www.lua.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![QEMU/KVM](https://img.shields.io/badge/QEMU%2FKVM-FF6600?style=flat-square&logo=qemu&logoColor=white)](https://www.qemu.org/)
 [![Kali Tools](https://img.shields.io/badge/Kali%20Tools-557C94?style=flat-square&logo=kalilinux&logoColor=white)](https://www.kali.org/tools/)
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat-square&logo=hyprland&logoColor=black)](https://hyprland.org/)
+[![Repo Size](https://img.shields.io/github/repo-size/Metall-Moses/pendora?style=flat-square)](https://github.com/Metall-Moses/pendora)
 
 > ⚠️ **Disclaimer & Notice**  
 > * **AI-Assisted Development**: Artificial intelligence (AI) has been utilized for parts of this project, including code generation, deployment scripts, configuration templates, and documentation.  
