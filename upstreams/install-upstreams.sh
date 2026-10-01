@@ -233,9 +233,11 @@ install_portainer() {
 install_sysreptor() {
     log_info "Configuring Docker and deploying SysReptor pentest reporting platform..."
     local install_dir="/opt/sysreptor"
+    local installer_script="/tmp/sysreptor_install.sh"
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo mkdir -p '$install_dir'"
-        echo "  [DRY-RUN] cd '$install_dir' && curl -sSL https://docs.sysreptor.com/install.sh | sudo bash"
+        echo "  [DRY-RUN] curl -fsSL https://docs.sysreptor.com/install.sh -o '$installer_script'"
+        echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_LICENSE='' SYSREPTOR_ENCRYPT='n' CONFIRM='y' bash '$installer_script' < /dev/null"
         echo "  [DRY-RUN] SysReptor interface will be accessible at: http://localhost:8000"
     else
         if ! command -v docker &>/dev/null; then
@@ -244,13 +246,29 @@ install_sysreptor() {
         fi
         sudo systemctl enable --now docker
         sudo mkdir -p "$install_dir"
-        log_info "Downloading and running official SysReptor installer in $install_dir..."
-        if [ "$ASSUME_YES" = true ]; then
-            (cd "$install_dir" && export SYSREPTOR_LICENSE="" SYSREPTOR_ENCRYPT="n" && curl -sSL https://docs.sysreptor.com/install.sh | sudo -E bash)
-        else
-            (cd "$install_dir" && curl -sSL https://docs.sysreptor.com/install.sh | sudo bash)
-        fi
+        log_info "Downloading official SysReptor installer..."
+        curl -fsSL https://docs.sysreptor.com/install.sh -o "$installer_script"
+        chmod +x "$installer_script"
+
+        log_info "Running SysReptor installer in unattended mode (Community Edition)..."
+        local creds_file="${install_dir}/admin_credentials.txt"
+
+        # Execute installer with unattended environment variables and capture output
+        (
+            cd "$install_dir"
+            sudo env SYSREPTOR_LICENSE="" SYSREPTOR_ENCRYPT="n" CONFIRM="y" bash "$installer_script" < /dev/null
+        ) | sudo tee "$creds_file"
+
+        # Cleanup temporary installer script
+        rm -f "$installer_script"
+
+        # Extract generated superuser password from credentials log
+        local generated_pw
+        generated_pw=$(grep -i "^Password:" "$creds_file" 2>/dev/null | tail -n 1 || echo "")
         log_success "SysReptor deployment completed! Web interface: http://localhost:8000"
+        log_info "Default login: reptor"
+        [ -n "$generated_pw" ] && log_info "Generated admin $generated_pw"
+        log_info "Credentials saved to: $creds_file"
     fi
 }
 install_bloodhound() {
@@ -370,8 +388,9 @@ fi
 
 if [[ " ${TOOLS[*]} " =~ " all " ]]; then
     TOOLS=("metasploit" "burpsuite" "seclists" "evil-winrm" "zap" "hack-font" "portainer" "sysreptor" "bloodhound" "devtunnel" "responder")
+elif [[ " ${TOOLS[*]} " =~ " containers " ]] || [[ " ${TOOLS[*]} " =~ " docker " ]]; then
+    TOOLS=("portainer" "sysreptor" "bloodhound")
 fi
-
 echo -e "${BOLD}Pendora - Standalone Upstream Tool Installation${NC}"
 echo "========================================================"
 log_info "Selected tools: ${TOOLS[*]}"

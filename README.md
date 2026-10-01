@@ -174,6 +174,8 @@ Install only the specific components you need:
 # Install only Docker engine packages
 ./install.sh -c 60-docker
 
+# Install Docker engine AND deploy all containers (Portainer, SysReptor, BloodHound)
+./install.sh --docker
 # Install only Pipx-isolated Python security tools
 ./install.sh --pipx
 

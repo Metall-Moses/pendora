@@ -20,6 +20,7 @@ INSTALL_HYPRLAND=false
 INSTALL_ALACRITTY=false
 INSTALL_NVIM=false
 INSTALL_WALLPAPER=false
+INSTALL_DOCKER_CONTAINERS=false
 SET_HOSTNAME=false
 RUN_ALL=false
 RUN_BASIC=false
@@ -64,6 +65,7 @@ ${BOLD}Options:${NC}
   -f, --file <file>        Install packages from a specific file
   -p, --pipx               Install Python security tools via pipx
   -u, --upstreams          Run standalone upstream installers (Metasploit, Burp, SecLists, etc.)
+  -D, --docker, --containers Install Docker engine and deploy container stacks (Portainer, SysReptor, BloodHound)
   -z, --zsh                Deploy Kali-styled .zshrc configuration
   -W, --hyprland           Install Hyprland desktop stack, COPR, screensharing, and dotfiles
   -T, --alacritty          Deploy Alacritty terminal configuration & Catppuccin Macchiato theme
@@ -219,6 +221,24 @@ run_upstreams_install() {
 
     "$UPSTREAMS_SCRIPT" "${upstream_args[@]}"
 }
+run_containers_install() {
+    echo
+    echo -e "${BOLD}Deploying Docker Containers (Portainer, SysReptor, BloodHound)${NC}"
+    echo "===================================================="
+
+    if [ ! -x "$UPSTREAMS_SCRIPT" ]; then
+        log_error "Upstream installer script not found or not executable: $UPSTREAMS_SCRIPT"
+        return 1
+    fi
+
+    local upstream_args=()
+    [ "$DRY_RUN" = true ] && upstream_args+=("--dry-run")
+    [ -n "$ASSUME_YES" ] && upstream_args+=("--yes")
+    upstream_args+=("containers")
+
+    "$UPSTREAMS_SCRIPT" "${upstream_args[@]}"
+}
+
 deploy_zsh_config() {
     echo
     echo -e "${BOLD}Deploying Kali-styled Zsh Configuration${NC}"
@@ -565,6 +585,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_WALLPAPER=true
             shift
             ;;
+        -D|--docker|--containers)
+            INSTALL_DOCKER_CONTAINERS=true
+            shift
+            ;;
         -H|--hostname)
             SET_HOSTNAME=true
             shift
@@ -604,9 +628,9 @@ check_non_root
 # Determine whether DNF packages should be installed
 RUN_PACKAGES=false
 
-if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_HYPRLAND" = true ]; then
+if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_HYPRLAND" = true ] || [ "$INSTALL_DOCKER_CONTAINERS" = true ]; then
     RUN_PACKAGES=true
-elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_WALLPAPER" = false ] && [ "$SET_HOSTNAME" = false ]; then
+elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_WALLPAPER" = false ] && [ "$INSTALL_DOCKER_CONTAINERS" = false ] && [ "$SET_HOSTNAME" = false ]; then
     # Default invocation with no flags: install native packages (00-60)
     RUN_PACKAGES=true
 fi
@@ -647,6 +671,8 @@ if [ "$RUN_PACKAGES" = true ]; then
         done
     elif [ "$INSTALL_HYPRLAND" = true ] && [ "$RUN_BASIC" = false ]; then
         TARGET_FILES+=("${LISTS_DIR}/70-hyprland.list")
+    elif [ "$INSTALL_DOCKER_CONTAINERS" = true ] && [ "$RUN_BASIC" = false ]; then
+        TARGET_FILES+=("${LISTS_DIR}/60-docker.list")
     else
         # Default or --basic: process 00-60 (skip 70-hyprland)
         for list_file in "${LISTS_DIR}"/*.list; do
@@ -737,6 +763,11 @@ fi
 # Deploy Alacritty configuration if requested
 if [ "$INSTALL_ALACRITTY" = true ]; then
     deploy_alacritty_config
+fi
+
+# Run Docker containers section if requested
+if [ "$INSTALL_DOCKER_CONTAINERS" = true ]; then
+    run_containers_install
 fi
 
 # Deploy Neovim configuration if requested
