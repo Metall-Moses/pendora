@@ -5,35 +5,16 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("/usr/libexec/xdg-desktop-portal-hyprland -r")
 	hl.exec_cmd("sleep 1 && /usr/libexec/xdg-desktop-portal-gtk")
 	-- rest unchanged
-	hl.exec_cmd("xhost +SI:localuser:root")
 end)
 
 -----------------
 ---- MONITOR ----
 -----------------
 hl.monitor({
-	output = "eDP-1",
-	mode = "1920x1080@144.00Hz",
-	position = "4520x0",
-	scale = 1,
-})
-hl.monitor({
-	output = "DP-7",
-	mode = "3440x1440",
+	output = "auto",
+	mode = "auto",
 	position = "0x0",
 	scale = 1,
-})
-hl.monitor({
-	output = "DP-5",
-	mode = "1920x1080",
-	position = "3440x0",
-	scale = 1,
-	transform = 3,
-})
-hl.monitor({
-	output = "DP-1",
-	mode = "1920x1080",
-	position = "-1920x0",
 })
 
 ------------------
@@ -43,17 +24,9 @@ local mainMod = "SUPER"
 local secondMod = "SUPER + SHIFT"
 local terminal = "alacritty"
 local fileManager = "nautilus"
-local music = "spotify"
 local browser = "firefox"
 local menu = "rofi -show run -show-icons"
 local ipc = "noctalia msg"
---hl.window_rule({
---	match = { class = "^steam$", title = "^$" },
--- no_initial_focus = true,
--- suppress_event = "activate",
---	stay_focused = true,
---	min_size = "1 1",
---})
 ---------------
 ---- INPUT ----
 ---------------
@@ -107,34 +80,18 @@ hl.config({
 -------------------
 hl.on("hyprland.start", function()
 	hl.exec_cmd("noctalia")
-	hl.exec_cmd("hyprpaper -c ~/.config/hypr/hyprpaper.conf")
 	hl.exec_cmd("wl-paste --type text --watch cliphist store")
 	hl.exec_cmd("wl-paste --type image --watch cliphist store")
-	--hl.exec_cmd("eval $(ssh-agent)")
-	--	hl.exec_cmd("steam")
-	hl.exec_cmd("vmware")
-	--hl.exec_cmd("obsidian")
-	hl.exec_cmd("blueman-manager")
-	--DP-7	hl.exec_cmd("google-chrome")
-	--	hl.exec_cmd("flatpak run org.signal.Signal")
-	hl.exec_cmd("discord")
 end)
 
 ---------------------
 ---- KEYBINDINGS ----
 ---------------------
-hl.bind(secondMod .. " + W ", hl.dsp.submap("passthrough"))
-hl.define_submap("passthrough", function()
-	hl.bind(secondMod .. " + E", hl.dsp.submap("reset"))
-end)
 -- Apps
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 hl.bind(secondMod .. " + Space", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(music))
-
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("~/.local/bin/record-screen.sh"))
 
 hl.bind(secondMod .. " + R", hl.dsp.exec_cmd("pkill -f quickshell; sleep 0.3; qs -c noctalia-shell & disown"))
 -- hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("hyprlock"))
@@ -186,19 +143,16 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(ipc .. " brightness-down"))
 ------------------------------
 ---- PERSISTENT WORKSPACES ----
 ------------------------------
-hl.workspace_rule({ workspace = "1", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "2", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "3", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "4", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "5", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "6", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "7", monitor = "DP-7", default = true, persistent = true })
-hl.workspace_rule({ workspace = "8", monitor = "DP-5", default = true, persistent = true })
-hl.workspace_rule({ workspace = "9", monitor = "eDP-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "1", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "2", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "3", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "4", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "5", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "6", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "7", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "8", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "9", monitor = "auto", default = true, persistent = true })
 
---hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true, persistent = true })
---hl.workspace_rule({ workspace = "2", monitor = "DP-1", default = true, persistent = true })
---hl.workspace_rule({ workspace = "3", monitor = "DP-1", default = true, persistent = true })
 -------------------------------
 ---- NOCTALIA SURFACE BLUR ----
 -------------------------------

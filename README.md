@@ -7,8 +7,9 @@
 [![Kali Tools](https://img.shields.io/badge/Kali%20Tools-557C94?style=flat-square&logo=kalilinux&logoColor=white)](https://www.kali.org/tools/)
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat-square&logo=hyprland&logoColor=black)](https://hyprland.org/)
 
-> ⚠️ **Disclaimer: Work in Progress**  
-> This project is currently under active construction and testing. Tool lists, deployment scripts, and configurations are subject to rapid iteration and changes. Use at your own risk.
+> ⚠️ **Disclaimer & Notice**  
+> * **AI-Assisted Development**: Artificial intelligence (AI) has been utilized for parts of this project, including code generation, deployment scripts, configuration templates, and documentation.  
+> * **Use Entirely at Your Own Risk**: This project is provided "as is" without warranty of any kind. Using, deploying, or executing scripts and configurations from this repository is done entirely at your own risk. Always review scripts before executing them on production or sensitive systems.
 
 **Pendora** is a modular installation framework and configuration template designed to transform a standard **Fedora Linux** installation into a penetration testing and security assessment virtual machine.
 

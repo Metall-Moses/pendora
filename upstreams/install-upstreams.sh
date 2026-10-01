@@ -77,8 +77,11 @@ install_burpsuite() {
     log_info "Downloading Burp Suite Community Edition installer..."
     local installer_url="https://portswigger.net/burp/releases/download?product=community&type=linux"
     local dest="/tmp/burpsuite_community.sh"
+    local varfile="/tmp/burp_response.varfile"
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] curl -fsSL '$installer_url' -o '$dest' && chmod +x '$dest' && sudo '$dest' -q"
+        echo "  [DRY-RUN] curl -fsSL '$installer_url' -o '$dest' && chmod +x '$dest'"
+        echo "  [DRY-RUN] sudo '$dest' -q -dir /opt/BurpSuiteCommunity -overwrite -varfile '$varfile'"
+        echo "  [DRY-RUN] sudo ln -sf /opt/BurpSuiteCommunity/BurpSuiteCommunity /usr/local/bin/burpsuite"
     else
         curl -fsSL "$installer_url" -o "$dest"
         if head -n 1 "$dest" | grep -q "^<"; then
@@ -86,11 +89,25 @@ install_burpsuite() {
             return 1
         fi
         chmod +x "$dest"
-        log_info "Running Burp Suite installer..."
-        local quiet_arg=""
-        [ "$ASSUME_YES" = true ] && quiet_arg="-q"
-        sudo "$dest" $quiet_arg
-        log_success "Burp Suite installation finished."
+
+        # Pre-seed install4j response varfile for non-interactive automated installation
+        cat > "$varfile" <<'EOF'
+sys.installationDir=/opt/BurpSuiteCommunity
+sys.symlinkDir=/usr/local/bin
+EOF
+
+        log_info "Running Burp Suite installer in unattended mode (-q -dir /opt/BurpSuiteCommunity -overwrite)..."
+        sudo "$dest" -q -dir /opt/BurpSuiteCommunity -overwrite -varfile "$varfile"
+
+        # Ensure launcher symlinks exist in /usr/local/bin
+        if [ -f /opt/BurpSuiteCommunity/BurpSuiteCommunity ]; then
+            [ ! -e /usr/local/bin/burpsuite ] && sudo ln -sf /opt/BurpSuiteCommunity/BurpSuiteCommunity /usr/local/bin/burpsuite
+            [ ! -e /usr/local/bin/BurpSuiteCommunity ] && sudo ln -sf /opt/BurpSuiteCommunity/BurpSuiteCommunity /usr/local/bin/BurpSuiteCommunity
+        fi
+
+        # Clean up temporary installer and varfile
+        rm -f "$dest" "$varfile"
+        log_success "Burp Suite installed in unattended mode. Symlink ready at /usr/local/bin/burpsuite"
     fi
 }
 
@@ -138,17 +155,34 @@ install_evil_winrm() {
 
 install_zap() {
     log_info "Installing OWASP ZAP (Zed Attack Proxy) via Flatpak..."
+    local target_user="${SUDO_USER:-${USER:-$(id -un)}}"
+    local flatpak_cmd=(flatpak --user)
+    if [ -n "${SUDO_USER:-}" ] && [ "$EUID" -eq 0 ]; then
+        flatpak_cmd=(sudo -u "$SUDO_USER" flatpak --user)
+    fi
+
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
-        echo "  [DRY-RUN] flatpak install -y flathub org.zaproxy.ZAP"
+        echo "  [DRY-RUN] ${flatpak_cmd[*]} remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
+        echo "  [DRY-RUN] ${flatpak_cmd[*]} install -y --noninteractive flathub org.zaproxy.ZAP"
+        echo "  [DRY-RUN] Create /usr/local/bin/zap launcher wrapper"
     else
         if ! command -v flatpak &>/dev/null; then
-            log_error "flatpak command not found. Install flatpak via dnf first."
-            return 1
+            log_info "flatpak not found. Installing flatpak via dnf..."
+            sudo dnf install -y flatpak || { log_error "Failed to install flatpak"; return 1; }
         fi
-        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-        flatpak install -y flathub org.zaproxy.ZAP
-        log_success "ZAP Flatpak installed."
+        log_info "Configuring Flathub remote in user scope for ${target_user}..."
+        "${flatpak_cmd[@]}" remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        log_info "Installing org.zaproxy.ZAP in user scope..."
+        "${flatpak_cmd[@]}" install -y --noninteractive flathub org.zaproxy.ZAP
+
+        # Create launcher wrapper in /usr/local/bin/zap
+        local wrapper="/usr/local/bin/zap"
+        sudo tee "$wrapper" >/dev/null <<'EOF'
+#!/bin/sh
+exec flatpak run org.zaproxy.ZAP "$@"
+EOF
+        sudo chmod +x "$wrapper"
+        log_success "ZAP Flatpak installed successfully. Launcher ready at $wrapper"
     fi
 }
 install_hack_font() {

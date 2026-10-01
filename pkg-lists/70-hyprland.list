@@ -16,11 +16,8 @@ xdg-desktop-portal-gtk      # GTK desktop portal fallback
 # --- Desktop Shell & UI Components ---
 noctalia                    # Wayland desktop shell (bar, launcher, control center)
 rofi                        # Window switcher and application runner
-hyprpaper                   # Fast wallpaper daemon for Hyprland
 hyprshot                    # Screenshot utility for Hyprland
 
-# --- Screen Recording & Accessories ---
-wf-recorder                 # Screen recorder for wlroots Wayland compositors
-slurp                       # Region selection tool for Wayland
+# --- File Management & Selection Utilities ---
+slurp                       # Region selection tool for Wayland (used by hyprshot)
 nautilus                    # GNOME file manager
-blueman                     # GTK Bluetooth management applet
