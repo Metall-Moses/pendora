@@ -218,16 +218,16 @@ Installs the complete toolkit and sets up the Hyprland tiling compositor stack (
 ```
 ---
 
-## Post-Installation Setup
+## Post-Installation
 
-1. **Set Zsh as Default Shell**:
-   ```bash
-   chsh -s $(which zsh)
-   ```
-2. **Apply User to Docker Group** (if not already applied):
-   ```bash
-   sudo usermod -aG docker $USER
-   newgrp docker
-   ```
-3. **Terminal Font**:
-   Set your terminal emulator (e.g. Alacritty) font to `Hack Nerd Font` to render the Fedora logo glyph and prompt icons properly.
+All shell configurations, font definitions, and group memberships are **automated** during execution:
+
+* **Default Login Shell**: Automatically updated to Zsh (`/bin/zsh`) for your user account.
+* **Docker Permissions**: Your user is added to the `docker` supplementary group.
+* **Terminal Iconography**: Alacritty is pre-configured with `Hack Nerd Font` to render the Fedora prompt logos and glyphs.
+
+To apply new group memberships and graphical session targets, simply reboot the system:
+
+```bash
+sudo reboot
+```

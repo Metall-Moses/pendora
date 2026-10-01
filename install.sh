@@ -22,6 +22,7 @@ INSTALL_NVIM=false
 SET_HOSTNAME=false
 RUN_ALL=false
 RUN_BASIC=false
+REBOOT=true
 SELECTED_CATEGORIES=()
 CUSTOM_FILES=()
 
@@ -69,7 +70,7 @@ ${BOLD}Options:${NC}
   -H, --hostname           Set system hostname to 'pendora'
   -b, --basic              Basic pentest setup without Hyprland (00-60 DNF + pipx + upstreams + zsh + alacritty + nvim)
   -a, --all                Full setup including Hyprland desktop stack
-
+  --no-reboot              Do not reboot system after installation
 ${BOLD}Examples:${NC}
   $(basename "$0") --list
   $(basename "$0") --dry-run
@@ -234,7 +235,7 @@ deploy_zsh_config() {
 
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] cp \${SCRIPT_DIR}/zsh/.zshrc to /home/\$USER/.zshrc (with backup if existing)"
-        echo "  [DRY-RUN] chsh -s \$(which zsh)"
+        echo "  [DRY-RUN] sudo usermod -s \$(which zsh) \$USER"
     else
         if ! command -v zsh &>/dev/null; then
             log_info "zsh not found. Installing zsh packages via dnf..."
@@ -251,8 +252,16 @@ deploy_zsh_config() {
         fi
         log_success "Deployed Kali .zshrc to $dest_zsh"
 
-        if command -v zsh &>/dev/null && [ "${SHELL:-}" != "$(which zsh)" ]; then
-            log_info "Zsh is installed. You can set it as default shell with: chsh -s \$(which zsh)"
+        if command -v zsh &>/dev/null; then
+            local zsh_bin
+            zsh_bin="$(which zsh)"
+            local current_login_shell
+            current_login_shell="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f7)"
+            if [ "$current_login_shell" != "$zsh_bin" ]; then
+                log_info "Setting default login shell to $zsh_bin for $target_user..."
+                sudo usermod -s "$zsh_bin" "$target_user" || true
+                log_success "Default login shell updated to $zsh_bin"
+            fi
         fi
     fi
 }
@@ -439,6 +448,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -y|--yes)
             ASSUME_YES="-y"
+            shift
+            ;;
+        --no-reboot)
+            REBOOT=false
             shift
             ;;
         -c|--category)
@@ -668,3 +681,27 @@ if [ "$SET_HOSTNAME" = true ]; then
 fi
 
 log_success "Pendora execution completed!"
+
+if [ "$REBOOT" = true ]; then
+    echo
+    echo -e "${BOLD}System Reboot${NC}"
+    echo "===================================================="
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] sudo reboot"
+    else
+        log_info "A system reboot is required to apply shell changes, group permissions, and session targets."
+        if [ -n "$ASSUME_YES" ]; then
+            log_info "Rebooting system in 5 seconds (Press Ctrl+C to cancel)..."
+            sleep 5
+            sudo reboot
+        else
+            read -rp "Reboot system now? [Y/n]: " do_reboot
+            if [[ ! "$do_reboot" =~ ^[Nn]$ ]]; then
+                log_info "Rebooting system now..."
+                sudo reboot
+            else
+                log_warn "Reboot deferred. Remember to reboot manually: sudo reboot"
+            fi
+        fi
+    fi
+fi
