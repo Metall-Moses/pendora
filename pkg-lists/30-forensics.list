@@ -1,0 +1,29 @@
+# ==============================================================================
+# 30-forensics.list: Reverse Engineering, Binary Auditing & Forensics
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # valgrind)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add the Fedora package name on a new line
+# ==============================================================================
+
+# --- Disassembly, Debugging & Binary Analysis ---
+radare2                     # Advanced command-line reverse engineering framework & disassembler
+gdb                         # The GNU Debugger for dynamic binary inspection
+binutils                    # Binary tools: objdump, readelf, strings, nm, strip, as, ld
+valgrind                    # Memory debugging, memory leak detection, and profiling tool
+strace                      # System call tracer for Linux processes
+ltrace                      # Library call tracer for dynamic shared library tracking
+
+# --- Firmware Extraction & File Carving ---
+binwalk                     # Firmware analysis and embedded file extraction tool
+foremost                    # File carving tool based on file headers, footers, and data structures
+perl-Image-ExifTool         # Comprehensive reader/writer for EXIF, IPTC, and XMP metadata
+hexedit                     # View and edit files in hexadecimal and ASCII mode
+
+# --- Filesystem Forensics & Disaster Recovery ---
+sleuthkit                   # Digital forensics toolkit to analyze disk images and partition tables
+testdisk                    # Powerful data recovery tool to recover lost partitions and repair filesystems
+dcfldd                      # Enhanced dd clone with hashing, wiping, and forensic status output
+dc3dd                       # DoD cyber crime center dd patch for digital forensics evidence acquisition
+extundelete                 # File recovery utility for ext3 and ext4 partition filesystems

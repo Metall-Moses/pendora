@@ -1,0 +1,20 @@
+# ==============================================================================
+# 20-web.list: Web Application Security & HTTP Assessment
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # ffuf)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add the Fedora package name on a new line
+#
+# Related lists:
+#  - Python web tools (sqlmap, mitmproxy, arjun, dirsearch): see pipx-lists/pipx-tools.list
+#  - Enterprise proxies (burpsuite, zap): see upstreams/
+# ==============================================================================
+
+# --- Content Discovery & Web Fuzzing ---
+ffuf                        # Fast web fuzzer written in Go (directory & parameter fuzzing)
+gobuster                    # URI and DNS brute-forcing tool written in Go
+
+# --- Fingerprinting & HTTP Clients ---
+whatweb                     # Web scanner identifying CMS, blogging platforms, JavaScript libraries
+httpie                      # User-friendly command-line HTTP client with formatted JSON output

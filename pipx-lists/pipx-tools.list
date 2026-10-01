@@ -1,0 +1,26 @@
+# ==============================================================================
+# pipx-tools.list: Python Security Tools (Managed via pipx in Isolated Envs)
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # arjun)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add PyPI package name or git URL on a new line
+#  - Inline comments with '#' are fully supported
+# ==============================================================================
+
+# --- Active Directory & Network Protocol Auditing ---
+git+https://github.com/Pennyw0rth/NetExec  # Modern network execution and AD exploitation tool (NetExec / nxc)
+impacket                    # Network protocol tools suite (secretsdump, psexec, wmiexec, etc.)
+certipy-ad                  # Active Directory Certificate Services (AD CS) enumeration and abuse
+bloodhound-ce               # Python-based ingestor/collector for BloodHound Community Edition
+
+# --- Web Application Testing & Reconnaissance ---
+sqlmap                      # Automatic SQL injection and database takeover engine
+mitmproxy                   # Interactive, SSL/TLS-capable intercepting HTTP proxy
+arjun                       # HTTP parameter discovery suite
+dirsearch                   # Advanced web path brute-forcer
+sublist3r                   # Fast OSINT subdomain discovery tool
+updog                       # Modern file-sharing HTTP/S web server with upload and HTTP basic auth
+
+# --- Exploit Development & CTF ---
+pwntools                    # CTF framework and exploit development library

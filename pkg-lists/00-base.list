@@ -1,0 +1,71 @@
+# ==============================================================================
+# 00-base.list: Base System, Shell & Development Environment
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a package: prefix the line with '#' (e.g., # alacritty)
+#  - To REMOVE a package:  delete the line
+#  - To ADD a package:     add the Fedora package name on a new line
+#  - Inline comments with '#' are fully supported
+# ==============================================================================
+
+# --- Shell Environment & Multiplexers ---
+zsh                         # Advanced interactive shell
+zsh-autosuggestions         # Fish-like autosuggestions for Zsh
+zsh-syntax-highlighting     # Fish-like command syntax highlighting for Zsh
+tmux                        # Terminal multiplexer (session manager)
+
+# --- Terminal & Editors ---
+alacritty                   # GPU-accelerated terminal emulator
+neovim                      # Modern extensible Vim-fork editor
+
+# --- Dotfiles & Desktop Clipboard ---
+stow                        # GNU symlink farm manager for dotfiles
+wl-clipboard                # Wayland clipboard copy/paste utility
+cliphist                    # Wayland clipboard history manager
+
+# --- System Monitoring & Diagnostics ---
+btop                        # Modern resource monitor with graphical graphs
+htop                        # Interactive process viewer
+lsof                        # List open files and network sockets
+parted                      # Disk partition manipulation utility
+procps-ng                   # Core system utilities (ps, top, vmstat, sysctl)
+
+# --- File Search, Inspection & Text Processing ---
+curl                        # HTTP client and data transfer tool
+wget2-wget                  # Fast file retriever (modern wget replacement)
+git                         # Distributed version control system
+jq                          # Lightweight command-line JSON processor
+ripgrep                     # Extremely fast recursive regex search (rg)
+fd-find                     # Simple, fast alternative to find (fd)
+fzf                         # General-purpose command-line fuzzy finder
+tree                        # Recursive directory listing visualizer
+
+# --- Archivers & Compression ---
+7zip                        # High compression file archiver (p7zip successor)
+7zip-standalone             # Standalone 7z binary
+tar                         # Tape archive utility
+unzip                       # Zip file extractor
+
+# --- Runtimes, Compilers & Build Tools ---
+gcc                         # GNU C compiler
+gcc-c++                     # GNU C++ compiler
+make                        # Build automation tool
+cmake                       # Cross-platform build system
+python3                     # Python 3 interpreter
+python3-pip                 # Python package installer
+python3-devel               # Python header files for compiling C extensions
+python3-setuptools         # Python packaging library (resolves setuptools build warning)
+python3-wheel              # Built-package format for Python wheels
+openssl-devel               # OpenSSL development headers (required for cryptography wheels)
+libffi-devel                # Foreign Function Interface library headers (required for cffi)
+rust                        # Rust compiler (required for compiling modern cryptography & aardwolf wheels)
+cargo                       # Rust package manager and build tool
+pipx                        # Isolated Python application installer
+ruby                        # Ruby programming language runtime
+rubygems                    # Ruby package manager (for evil-winrm, etc.)
+ruby-devel                  # Ruby development headers (provides ruby.h for native gem compilation)
+readline-devel              # GNU Readline library headers (required by readline-ext gem)
+
+# --- Cryptography & Low-level Utilities ---
+openssl                     # TLS/SSL cryptography toolkit (needed for SysReptor)
+util-linux                  # Core Linux utilities (provides uuidgen for SysReptor)

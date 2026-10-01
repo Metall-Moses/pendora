@@ -1,0 +1,15 @@
+# ==============================================================================
+# 60-docker.list: Container Runtime & Orchestration Engine
+# ==============================================================================
+# Instructions:
+#  - To DISABLE: prefix with '#'
+#  - To REMOVE:  delete the line
+#  - To ADD:     add the Fedora package name on a new line
+#
+# Note:
+#  - Portainer and SysReptor containers are managed in upstreams/install-upstreams.sh
+# ==============================================================================
+
+moby-engine                 # Open-source Docker daemon engine (dockerd service)
+docker-cli                  # Standard docker command-line client
+docker-compose              # Multi-container Docker application orchestration utility

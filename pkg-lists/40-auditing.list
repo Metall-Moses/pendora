@@ -1,0 +1,20 @@
+# ==============================================================================
+# 40-auditing.list: Password Cracking & Authentication Testing
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # medusa)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add the Fedora package name on a new line
+# ==============================================================================
+
+# --- Offline Password & Hash Cracking ---
+john                        # John the Ripper - advanced offline password and hash cracker
+hashcat                     # High-performance multi-threaded GPU-accelerated hash cracker
+cowpatty                    # Offline WPA/WPA2 PSK dictionary attack tool
+
+# --- Online Network Authentication Brute-Forcing ---
+hydra                       # Very fast parallelized network login cracker (SSH, FTP, HTTP, etc.)
+medusa                      # Speedy, parallel, modular login brute-forcer for remote services
+
+# --- Dictionaries & Wordlists ---
+words                       # System English dictionary wordlist (/usr/share/dict/words)

@@ -1,0 +1,59 @@
+# ==============================================================================
+# 10-networking.list: Networking, Reconnaissance & Traffic Analysis
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # masscan)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add the Fedora package name on a new line
+#  - Inline comments with '#' are fully supported
+# ==============================================================================
+
+# --- Port Scanners & Active Reconnaissance ---
+nmap                        # Network exploration tool and security/port scanner
+nmap-ncat                   # Modern Netcat rewrite for arbitrary network I/O
+masscan                     # Ultra-fast TCP port scanner (transmits SYN packets)
+zmap                        # Fast single-packet network scanner for Internet audits
+onesixtyone                 # Efficient SNMP scanner
+snmpcheck                   # SNMP reconnaissance tool for device enumeration
+nmbscan                     # NetBIOS network scanner
+p0f                         # Passive OS fingerprinting utility
+
+# --- DNS & Host Discovery ---
+dnsenum                     # Enumerate DNS information and discover non-contiguous IP blocks
+dnsmap                      # Subdomain brute-forcing and mapping tool
+dnstracer                   # Trace DNS queries to the authoritative source
+fpdns                       # Remote DNS server fingerprinting tool
+whois                       # Client for the WHOIS directory service
+bind-utils                  # DNS lookup utilities (dig, host, nslookup)
+arp-scan                    # ARP packet scanner for local network discovery
+fping                       # High-performance ping utility for multiple hosts
+hping3                      # Custom TCP/IP packet assembler and analyzer
+traceroute                  # Print route packets trace to network host
+iperf3                      # Network bandwidth measurement tool
+
+# --- Packet Capture & Traffic Analysis ---
+wireshark                   # Interactive graphical network protocol analyzer
+wireshark-cli               # Command-line network protocol analyzer (tshark)
+tcpdump                     # Powerful command-line packet capture and analysis tool
+tcpflow                     # TCP traffic reassembly and capture utility
+tcptrack                    # Real-time network connection monitor
+tcpreplay                   # Replay saved pcap traffic back onto the wire
+netsniff-ng                 # Zero-copy packet analyzer and networking toolkit
+ngrep                       # Network packet grep (pattern matching on payloads)
+ssldump                     # SSL/TLS network protocol analyzer
+sslscan                     # Query SSL/TLS services for supported ciphers & vulnerabilities
+sslsplit                    # Transparent SSL/TLS interception proxy
+
+# --- Sniffing, MITM & Network Relaying ---
+ettercap                    # Comprehensive suite for man-in-the-middle attacks
+dsniff                      # Collection of password sniffing & network auditing tools
+macchanger                  # Utility for viewing and changing MAC addresses
+socat                       # Multipurpose bidirectional data relay (socket cat)
+proxychains-ng              # Redirect TCP connections through SOCKS/HTTP proxies
+thc-ipv6                    # Comprehensive IPv6 security assessment attack toolkit
+
+# --- Network Stacks, Routing & VPN ---
+net-tools                   # Legacy networking utilities (ifconfig, netstat, arp)
+iproute                     # Advanced IP routing and network device configuration (ip)
+openvpn                     # Open source VPN daemon
+wireguard-tools             # WireGuard VPN configuration utilities (wg, wg-quick)

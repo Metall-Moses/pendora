@@ -1,0 +1,12 @@
+# ==============================================================================
+# 50-wireless.list: 802.11 Wireless Security & Radio Auditing
+# ==============================================================================
+# Instructions:
+#  - To DISABLE a tool: prefix with '#' (e.g., # reaver)
+#  - To REMOVE a tool:  delete the line
+#  - To ADD a tool:     add the Fedora package name on a new line
+# ==============================================================================
+
+aircrack-ng                 # Complete 802.11 WEP and WPA-PSK keys cracking suite
+kismet                      # Wireless network and device detector, sniffer, and WIDS
+reaver                      # Brute force attack tool against Wifi Protected Setup (WPS)
