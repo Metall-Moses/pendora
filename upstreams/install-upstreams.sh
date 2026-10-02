@@ -245,15 +245,35 @@ install_sysreptor() {
     local installer_script="/tmp/sysreptor_install.sh"
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo mkdir -p '$install_dir'"
-        echo "  [DRY-RUN] curl -fsSL https://docs.sysreptor.com/install.sh -o '$installer_script'"
+        echo "  [DRY-RUN] sed -i 's/read -p \"Copy your password.*/CONFIRM=\"y\"/g' '$installer_script'"
         echo "  [DRY-RUN] sed -i 's/read -p .*/true/g' '$installer_script'"
         echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_ENCRYPT='n' CONFIRM='y' CONFIRM_AUTOUPDATE='n' bash '$installer_script'"
+        echo "  [DRY-RUN] Display credentials banner and prompt user to copy before continuing"
         echo "  [DRY-RUN] SysReptor interface will be accessible at: http://localhost:8000"
     else
         ensure_docker_ready || return 1
-        # If SysReptor container stack is already running, skip re-installation
+        local creds_file="${install_dir}/admin_credentials.txt"
+
+        # If SysReptor container stack is already running, show credentials if available and skip re-installation
         if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^sysreptor-app"; then
             log_success "SysReptor container stack is already running! Web interface: http://localhost:8000"
+            if [ -f "$creds_file" ]; then
+                local existing_pw
+                existing_pw=$(grep -E "^Password:" "$creds_file" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '\r\n')
+                if [ -n "$existing_pw" ]; then
+                    echo
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo -e "${GREEN}${BOLD}SysReptor Credentials${NC}"
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo -e "  Web URL:   ${BOLD}http://localhost:8000${NC}"
+                    echo -e "  Username:  ${BOLD}reptor${NC}"
+                    echo -e "  Password:  ${BOLD}${existing_pw}${NC}"
+                    echo -e "  Saved to:  ${creds_file}"
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo
+                    read -rp "Please copy your username and password above. Press [Enter] to continue: " _
+                fi
+            fi
             return 0
         fi
 
@@ -262,12 +282,14 @@ install_sysreptor() {
         curl -fsSL https://docs.sysreptor.com/install.sh -o "$installer_script"
         chmod +x "$installer_script"
 
-        # Neutralize all interactive read prompts to enable clean unattended execution
-        # Neutralize all interactive read prompts with 'true' to prevent empty if/then syntax errors
+        # Neutralize all interactive read prompts with automated responses to avoid infinite while-loops
+        sed -i 's/read -p "Copy your password.*/CONFIRM="y"/g' "$installer_script"
+        sed -i 's/read -p "Backup your encryption.*/CONFIRM="y"/g' "$installer_script"
+        sed -i 's/read -p "Enable automatic updates.*/CONFIRM_AUTOUPDATE="n"/g' "$installer_script"
+        sed -i 's/read -p "Encrypt files and database.*/SYSREPTOR_ENCRYPT="n"/g' "$installer_script"
         sed -i 's/read -p .*/true/g' "$installer_script"
 
         log_info "Running SysReptor installer in unattended mode (Community Edition)..."
-        local creds_file="${install_dir}/admin_credentials.txt"
 
         (
             cd "$install_dir"
@@ -284,11 +306,21 @@ install_sysreptor() {
 
         # Extract generated superuser credentials
         local generated_pw
-        generated_pw=$(grep -i "^Password:" "$creds_file" 2>/dev/null | tail -n 1 || echo "")
+        generated_pw=$(grep -E "^Password:" "$creds_file" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '\r\n')
+        [ -z "$generated_pw" ] && generated_pw="Check $creds_file"
+
+        echo
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "${GREEN}${BOLD}SysReptor Credentials${NC}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "  Web URL:   ${BOLD}http://localhost:8000${NC}"
+        echo -e "  Username:  ${BOLD}reptor${NC}"
+        echo -e "  Password:  ${BOLD}${generated_pw}${NC}"
+        echo -e "  Saved to:  ${creds_file}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo
+        read -rp "Please copy your username and password above. Press [Enter] to continue: " _
         log_success "SysReptor deployment completed! Web interface: http://localhost:8000"
-        log_info "Default login: reptor"
-        [ -n "$generated_pw" ] && log_info "Generated admin $generated_pw"
-        log_info "Credentials saved to: $creds_file"
     fi
 }
 install_bloodhound() {
