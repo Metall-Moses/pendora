@@ -488,6 +488,7 @@ deploy_alacritty_config() {
             log_info "alacritty not found. Installing alacritty via dnf..."
             sudo dnf install -y alacritty || true
         fi
+        mkdir -p "$dest_alacritty"
         cp -r "$src_alacritty"/* "$dest_alacritty"/
         if [ -n "${SUDO_USER:-}" ]; then
             chown -R "${target_user}:${target_user}" "$dest_alacritty"
@@ -520,6 +521,8 @@ deploy_nvim_config() {
             log_info "neovim not found. Installing neovim via dnf..."
             sudo dnf install -y neovim || true
         fi
+        mkdir -p "$dest_nvim"
+        cp -r "$src_nvim"/* "$dest_nvim"/
         # Copy hidden files (.neoconf.json, stylua.toml, etc.)
         for dotf in "$src_nvim"/.*; do
             [ -f "$dotf" ] && cp "$dotf" "$dest_nvim"/
