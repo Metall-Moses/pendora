@@ -7,7 +7,7 @@
 [![QEMU/KVM](https://img.shields.io/badge/QEMU%2FKVM-FF6600?style=flat-square&logo=qemu&logoColor=white)](https://www.qemu.org/)
 [![Kali Tools](https://img.shields.io/badge/Kali%20Tools-557C94?style=flat-square&logo=kalilinux&logoColor=white)](https://www.kali.org/tools/)
 [![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat-square&logo=hyprland&logoColor=black)](https://hyprland.org/)
-[![Repo Size](https://img.shields.io/github/repo-size/Metall-Moses/pendora?style=flat-square)](https://github.com/Metall-Moses/pendora)
+[![Repo Size](https://img.shields.io/github/repo-size/sec-moose/pendora?style=flat-square)](https://github.com/sec-moose/pendora)
 
 > ⚠️ **Disclaimer & Notice**  
 > * **AI-Assisted Development**: Artificial intelligence (AI) has been utilized for parts of this project, including code generation, deployment scripts, configuration templates, and documentation.  
