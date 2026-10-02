@@ -18,6 +18,8 @@ A quick-reference summary for every tool category, standalone suite, and contain
 | **Arp-scan** | `sudo arp-scan --localnet` | Identify alive hosts on local Ethernet/WiFi |
 | **Dnsenum** | `dnsenum --enum target.com` | Comprehensive DNS enumeration & subdomains |
 | **Hping3** | `sudo hping3 -S -p 80 -c 5 <target>` | Custom TCP/IP packet assembler and tester |
+| **RustScan** | `rustscan -a <target> -- -A -sC` | Ultra-fast port discovery piped directly to Nmap |
+| **Naabu** | `naabu -host <target> -p -` | Fast TCP SYN/CONNECT port scanner (ProjectDiscovery) |
 
 ---
 
@@ -72,7 +74,7 @@ A quick-reference summary for every tool category, standalone suite, and contain
 | Tool | Command | Description |
 |---|---|---|
 | **NetExec (nxc)** | `nxc smb 192.168.1.0/24 -u user -p pass` | Modern Active Directory & network execution tool |
-| **Impacket** | `impacket-secretsdump domain/user:pass@target`<br>`impacket-psexec domain/user:pass@target`<br>`impacket-wmiexec domain/user:pass@target` | Full suite of Windows/AD exploitation scripts |
+| **Impacket** | `impacket <tool>` (e.g. `impacket secretsdump -h`)<br>`impacket-secretsdump domain/user:pass@target`<br>`secretsdump.py domain/user:pass@target` | Network protocol testing suite (70 tools: secretsdump, psexec, wmiexec, etc.) |
 | **Certipy** | `certipy find -vulnerable -u user@domain -p pass` | Active Directory Certificate Services (AD CS) auditing |
 | **SQLmap** | `sqlmap -u "http://target/page.php?id=1" --batch --dbs` | Automated SQL injection & database takeover |
 | **Mitmproxy** | `mitmproxy` *(interactive TUI on port 8080)* | SSL/TLS intercepting HTTP proxy |
@@ -94,6 +96,8 @@ A quick-reference summary for every tool category, standalone suite, and contain
 | **Responder** | `sudo responder -I eth0 -dwv` | LLMNR / NBT-NS / mDNS poisoning & hash capture |
 | **SecLists** | `/usr/share/wordlists/seclists/` | Massive collection of wordlists, payloads, usernames |
 | **DevTunnel** | `devtunnel host -p 8000` | Secure port forwarding to expose local ports publicly |
+| **RustScan** | `rustscan -a <target>` | Modern 65k-port scanner binary in `/usr/local/bin` |
+| **Naabu** | `naabu -host <target>` | ProjectDiscovery port scanner in `/usr/local/bin` |
 
 ---
 

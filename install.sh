@@ -156,8 +156,9 @@ list_categories() {
     echo "  - evil-winrm   (RubyGem)"
     echo "  - zap          (OWASP ZAP via Flatpak)"
     echo "  - hack-font    (Hack Nerd Font for terminal and prompt iconography)"
+    echo "  - rustscan     (RustScan ultra-fast 65k-port scanner binary in /usr/local/bin)"
+    echo "  - naabu        (Naabu fast port scanner by ProjectDiscovery in /usr/local/bin)"
     echo "  - portainer    (Portainer Community Edition UI on port 7999)"
-    echo "  - sysreptor    (SysReptor pentest reporting platform on port 8000)"
     echo "  - bloodhound   (BloodHound Community Edition on port 8080 - Portainer manageable)"
     echo "  - devtunnel    (Microsoft Dev Tunnels CLI for secure port forwarding)"
     echo "  - responder    (Responder LLMNR/NBT-NS/mDNS poisoner in /opt/responder)"
@@ -202,6 +203,86 @@ run_pipx_install() {
         fi
     done
     log_success "Pipx processing complete."
+
+    # Post-process Impacket: create convenience aliases and central /usr/local/bin/impacket launcher
+    local target_user="${SUDO_USER:-$USER}"
+    local target_home
+    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
+    [ -z "$target_home" ] && target_home="$HOME"
+    local pipx_bin_dir="${target_home}/.local/bin"
+
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] Create Impacket convenience symlinks (impacket-* and non-.py aliases in ~/.local/bin)"
+        echo "  [DRY-RUN] Deploy central /usr/local/bin/impacket CLI launcher"
+    else
+        if [ -d "$pipx_bin_dir" ]; then
+            log_info "Configuring Impacket convenience symlinks (impacket-* and non-.py) in $pipx_bin_dir..."
+            for script in "$pipx_bin_dir"/*.py; do
+                [ -f "$script" ] || continue
+                local base_name
+                base_name="$(basename "$script" .py)"
+                # e.g. secretsdump -> secretsdump.py
+                [ ! -e "${pipx_bin_dir}/${base_name}" ] && ln -sf "$script" "${pipx_bin_dir}/${base_name}"
+                # e.g. impacket-secretsdump -> secretsdump.py
+                [ ! -e "${pipx_bin_dir}/impacket-${base_name}" ] && ln -sf "$script" "${pipx_bin_dir}/impacket-${base_name}"
+            done
+            if [ -n "${SUDO_USER:-}" ]; then
+                chown -h "${target_user}:${target_user}" "${pipx_bin_dir}"/* 2>/dev/null || true
+            fi
+        fi
+
+        # Deploy central 'impacket' CLI runner
+        sudo tee /usr/local/bin/impacket >/dev/null <<'EOF'
+#!/usr/bin/env bash
+#
+# impacket - Central command runner and helper for Impacket tools suite
+#
+
+show_impacket_help() {
+    echo -e "\033[1mImpacket Security Suite\033[0m - Network Protocol Testing Framework"
+    echo "Usage: impacket <tool> [args...]"
+    echo "       impacket-<tool> [args...]"
+    echo "       <tool>.py [args...]"
+    echo
+    echo -e "\033[1mCommon Tools:\033[0m"
+    printf "  %-22s %s\n" "secretsdump" "Dump SAM hashes, LSA secrets, and NTDS.dit"
+    printf "  %-22s %s\n" "psexec" "PSEXEC-like process execution on remote Windows host"
+    printf "  %-22s %s\n" "wmiexec" "Execute non-interactive commands via WMI"
+    printf "  %-22s %s\n" "smbclient" "Interactive SMB client (upload/download/explore)"
+    printf "  %-22s %s\n" "smbexec" "Interactive SMB execution via service"
+    printf "  %-22s %s\n" "ntlmrelayx" "NTLM relay attack suite (HTTP/SMB/LDAP/MSSQL)"
+    printf "  %-22s %s\n" "GetNPUsers" "Query AS-REP roasting (accounts with DONT_REQ_PREAUTH)"
+    printf "  %-22s %s\n" "GetUserSPNs" "Kerberoast SPN discovery and ticket requester"
+    printf "  %-22s %s\n" "ticketConverter" "Convert between ccache and kirbi Kerberos tickets"
+    printf "  %-22s %s\n" "goldenPac" "MS14-068 exploit and Kerberos ticket generator"
+    printf "  %-22s %s\n" "addcomputer" "Add a new computer account to Active Directory domain"
+    printf "  %-22s %s\n" "mimikatz" "Execute Mimikatz via RPC"
+    echo
+    echo "Run 'impacket <tool> -h' for tool-specific help (e.g. impacket secretsdump -h)"
+}
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_impacket_help
+    exit 0
+fi
+
+TOOL="$1"
+shift
+
+# Check candidate paths
+for CANDIDATE in "$HOME/.local/bin/${TOOL}.py" "$HOME/.local/bin/${TOOL}" "/usr/local/bin/${TOOL}.py" "${TOOL}.py" "${TOOL}"; do
+    if command -v "$CANDIDATE" &>/dev/null; then
+        exec "$CANDIDATE" "$@"
+    fi
+done
+
+echo "Error: Impacket tool '${TOOL}' not found." >&2
+echo "Run 'impacket --help' to view available tools." >&2
+exit 1
+EOF
+        sudo chmod +x /usr/local/bin/impacket
+        log_success "Impacket launcher and symlinks configured."
+    fi
 }
 
 run_upstreams_install() {

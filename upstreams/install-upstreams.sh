@@ -48,8 +48,9 @@ ${BOLD}Available Upstream Tools:${NC}
   evil-winrm      Evil-WinRM Windows remote management shell (via gem)
   zap             Zed Attack Proxy (via Flathub Flatpak)
   hack-font       Hack Nerd Font (TTF glyphs from official Nerd Fonts release)
+  rustscan        RustScan modern 65k-port scanner (via GitHub release -> /usr/local/bin/rustscan)
+  naabu           Naabu fast port scanner (via ProjectDiscovery -> /usr/local/bin/naabu)
   portainer       Portainer Community Edition (management UI container on port 7999)
-  sysreptor       SysReptor pentest reporting platform (via Docker Compose on port 8000)
   bloodhound      BloodHound Community Edition (via Docker Compose on port 8080)
   devtunnel       Microsoft Dev Tunnels CLI (secure tunneling to localhost)
   responder       Responder LLMNR/NBT-NS/mDNS poisoner (via lgandx GitHub + venv)
@@ -478,9 +479,10 @@ install_devtunnel() {
     local dest="/usr/local/bin/devtunnel"
     local download_url="https://aka.ms/TunnelsCliDownload/linux-x64"
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] sudo curl -fsSL '$download_url' -o '$dest' && sudo chmod +x '$dest'"
+        echo "  [DRY-RUN] sudo curl -fL --progress-bar '$download_url' -o '$dest' && sudo chmod +x '$dest'"
     else
-        sudo curl -fsSL "$download_url" -o "$dest"
+        log_info "Downloading devtunnel binary (~60 MB)..."
+        sudo curl -fL --progress-bar "$download_url" -o "$dest"
         sudo chmod +x "$dest"
         log_success "Microsoft Dev Tunnels installed to $dest"
     fi
@@ -520,6 +522,47 @@ EOF
         log_success "Responder installed successfully! Launcher ready at $wrapper"
     fi
 }
+install_rustscan() {
+    log_info "Installing RustScan modern fast port scanner..."
+    local dest="/usr/local/bin/rustscan"
+    local download_url="https://github.com/bee-san/RustScan/releases/download/2.4.1/x86_64-linux-rustscan.tar.gz.zip"
+    local temp_dir="/tmp/rustscan_install_$$"
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] curl -fsSL '$download_url' -o /tmp/rustscan.zip"
+        echo "  [DRY-RUN] unzip /tmp/rustscan.zip && tar -xzf x86_64-linux-rustscan.tar.gz"
+        echo "  [DRY-RUN] sudo install -m 755 rustscan '$dest'"
+    else
+        mkdir -p "$temp_dir"
+        log_info "Downloading RustScan release archive..."
+        curl -fsSL "$download_url" -o "$temp_dir/rustscan.zip"
+        unzip -q -o "$temp_dir/rustscan.zip" -d "$temp_dir"
+        tar -xzf "$temp_dir/x86_64-linux-rustscan.tar.gz" -C "$temp_dir"
+        sudo install -m 755 "$temp_dir/rustscan" "$dest"
+        rm -rf "$temp_dir"
+        log_success "RustScan installed successfully to $dest"
+    fi
+}
+
+install_naabu() {
+    log_info "Installing Naabu fast port scanner (ProjectDiscovery)..."
+    local dest="/usr/local/bin/naabu"
+    local download_url="https://github.com/projectdiscovery/naabu/releases/download/v2.6.1/naabu_2.6.1_linux_amd64.zip"
+    local temp_dir="/tmp/naabu_install_$$"
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] curl -fsSL '$download_url' -o /tmp/naabu.zip"
+        echo "  [DRY-RUN] unzip /tmp/naabu.zip naabu"
+        echo "  [DRY-RUN] sudo install -m 755 naabu '$dest'"
+    else
+        mkdir -p "$temp_dir"
+        log_info "Downloading Naabu release archive..."
+        curl -fsSL "$download_url" -o "$temp_dir/naabu.zip"
+        unzip -q -o "$temp_dir/naabu.zip" naabu -d "$temp_dir"
+        sudo install -m 755 "$temp_dir/naabu" "$dest"
+        rm -rf "$temp_dir"
+        log_success "Naabu installed successfully to $dest"
+    fi
+}
+
 
 
 
@@ -556,7 +599,7 @@ if [ ${#TOOLS[@]} -eq 0 ]; then
 fi
 
 if [[ " ${TOOLS[*]} " =~ " all " ]]; then
-    TOOLS=("metasploit" "burpsuite" "seclists" "evil-winrm" "zap" "hack-font" "portainer" "sysreptor" "bloodhound" "devtunnel" "responder")
+    TOOLS=("metasploit" "burpsuite" "seclists" "evil-winrm" "zap" "hack-font" "rustscan" "naabu" "portainer" "sysreptor" "bloodhound" "devtunnel" "responder")
 elif [[ " ${TOOLS[*]} " =~ " containers " ]] || [[ " ${TOOLS[*]} " =~ " docker " ]]; then
     TOOLS=("portainer" "sysreptor" "bloodhound")
 fi
@@ -588,6 +631,12 @@ for tool in "${TOOLS[@]}"; do
             ;;
         hack-font|font)
             install_hack_font
+            ;;
+        rustscan)
+            install_rustscan
+            ;;
+        naabu)
+            install_naabu
             ;;
         portainer)
             install_portainer

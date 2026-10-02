@@ -11,8 +11,8 @@
 
 > ⚠️ **Disclaimer & Notice**  
 > * **AI-Assisted Development**: Artificial intelligence (AI) has been utilized for parts of this project, including code generation, deployment scripts, configuration templates, and documentation.  
-> * **Use Entirely at Your Own Risk**: This project is provided "as is" without warranty of any kind. Using, deploying, or executing scripts and configurations from this repository is done entirely at your own risk. Always review scripts before executing them on production or sensitive systems.
-
+> * **Third-Party & Vendor Scripts**: Certain upstream modules fetch and execute installation scripts directly from official vendor sources (notably SysReptor's installer at [`https://docs.sysreptor.com/install.sh`](https://docs.sysreptor.com/install.sh)). Users are strongly encouraged to inspect and read through all scripts thoroughly before executing them.  
+> * **Use Entirely at Your Own Risk**: This project is provided "as is" without warranty of any kind. The creator assumes no responsibility or liability for third-party scripts, remote downloads, system misconfigurations, or data loss resulting from the use of this repository. By using, cloning, or running this project, you explicitly acknowledge and accept this.
 **Pendora** is a modular installation framework and configuration template designed to transform a standard **Fedora Linux** installation into a penetration testing and security assessment virtual machine.
 
 It brings the toolset, workflows, and aesthetics of Kali Linux to Fedora's modern ecosystem (Wayland, RPM/DNF, systemd) using a modular, human-editable list structure.
@@ -38,7 +38,7 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 
 1. **Native Fedora RPMs (`pkg-lists/`)**: 109 packages verified directly against official Fedora repositories covering base compilers, networking, sniffers, web discovery, reversing, and forensics.
 2. **Pipx Isolated Python Tools (`pipx-lists/`)**: Offensive Python utilities requiring isolated environments to prevent library conflicts with system Python (`netexec`, `impacket`, `certipy-ad`, `bloodhound-ce`, `updog`, `sqlmap`, etc.).
-3. **Standalone Upstreams & Containers (`upstreams/`)**: Vendor installers, git clones, and Docker containers for enterprise suites (`metasploit`, `burpsuite`, `seclists`, `evil-winrm`, `zap`, `hack-font`, `portainer`, `sysreptor`, `bloodhound`, `devtunnel`, `responder`).
+3. **Standalone Upstreams & Containers (`upstreams/`)**: Vendor installers, git clones, and Docker containers for enterprise suites (`metasploit`, `burpsuite`, `seclists`, `evil-winrm`, `zap`, `hack-font`, `rustscan`, `naabu`, `portainer`, `sysreptor`, `bloodhound`, `devtunnel`, `responder`).
 4. **Interactive Shell Environment (`zsh/`)**: Interactive Zsh configuration with autosuggestions, syntax highlighting, and pentesting aliases.
 
 > 📖 **Tool Quick-Reference Guide**: For common startup commands, usage examples, keybindings, and dashboard URLs for every tool in this repository, see [assets/TOOL_REFERENCE.md](assets/TOOL_REFERENCE.md).
@@ -77,6 +77,11 @@ The scripts and package templates in this project are designed, tested, and vali
    > ⚠️ **Important:** **Do NOT run `install.sh` as `sudo`** (i.e. avoid `sudo ./install.sh`).
    > Always run it as your regular user: `./install.sh --all`.
    > The script handles `sudo` internally for tasks requiring root (DNF, hostname, Docker service). Running the entire script under `sudo` will incorrectly install user tools (`pipx`, `.zshrc`) into `/root/` instead of your user environment.
+
+3. **Installation Duration, Prompts & Network Downloads**:
+   * **Attendance Required**: The full installation takes significant time to complete (typically 15–30 minutes depending on your hardware and network connection) as it installs 120+ RPMs, builds Python wheels, downloads multi-gigabyte wordlists (SecLists), and pulls Docker container images.
+   * **Sudo & Interactive Pauses**: Keep an eye on the terminal. The script periodically requests your `sudo` password for privileged operations and pauses to present generated credential cards (Portainer setup token, SysReptor credentials, BloodHound password) waiting for `[Enter]` to proceed.
+   * **OWASP ZAP & Dev Tunnels Downloads**: During the upstream installations, downloading **OWASP ZAP** (Flatpak runtimes: `org.freedesktop.Platform`, GNOME runtime, codecs) and the standalone **Microsoft Dev Tunnels CLI** (`devtunnel`) binary takes time. The terminal may appear frozen or idle for several minutes while downloading these packages. **This is completely normal and has not hung during testing** — do not terminate the process; it will proceed automatically once the downloads finish.
 ---
 
 ## Directory Structure
@@ -97,7 +102,7 @@ pendora/
 ├── pipx-lists/                 # Isolated Python tool lists
 │   └── pipx-tools.list         # netexec (git), impacket, certipy-ad, bloodhound-ce, updog, etc.
 ├── upstreams/                  # Standalone third-party installers
-│   ├── install-upstreams.sh    # Metasploit, Burp, SecLists, Evil-WinRM, ZAP, Font, Portainer, SysReptor, BloodHound, Dev Tunnels, Responder
+│   ├── install-upstreams.sh    # Metasploit, Burp, SecLists, Evil-WinRM, ZAP, Font, RustScan, Naabu, Portainer, SysReptor, BloodHound, Dev Tunnels, Responder
 │   └── README.md
 ├── alacritty/                  # Alacritty terminal & Catppuccin Macchiato theme
 │   └── .config/alacritty/      # alacritty.toml, catppuccin-macchiato.toml (Stow-compatible)
@@ -116,10 +121,12 @@ pendora/
 | Service | Port / Protocol | Local URL | Description |
 |---|---|---|---|
 | **Portainer CE** | `7999` (HTTPS) | `https://localhost:7999` | Lightweight Docker management web dashboard |
-| **SysReptor** | `8000` (HTTP) | `http://localhost:8000` | Pentest reporting and finding documentation platform |
+| **SysReptor** | `8000` (HTTP) | `http://localhost:8000` | Pentest reporting platform (uses official [SysReptor install script](https://docs.sysreptor.com/install.sh)) |
 | **BloodHound CE** | `8080` (HTTP) | `http://localhost:8080` | Active Directory attack path analysis & visualization |
 
 *(For full credentials, startup commands, and terminal workflows across all categories, see the [Tool Reference Guide](assets/TOOL_REFERENCE.md)).*
+> ℹ️ **Third-Party Script Notice**: The SysReptor deployment pulls and executes the vendor's official installer from [`https://docs.sysreptor.com/install.sh`](https://docs.sysreptor.com/install.sh). Users should always review third-party scripts before running them.
+
 
 
 ## How to Customize Package Lists
