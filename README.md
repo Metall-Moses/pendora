@@ -48,7 +48,8 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 Pendora provides full flexibility over your graphical environment. You can choose whether you want a headless/GNOME-compatible pentest environment or the full dynamic tiling desktop experience:
 
 > 💡 **Recommendation: Deploy Basic Install (`--basic`)**  
-> The current recommendation is to run the **Basic Install (`./install.sh --basic`)**. This configuration has been thoroughly tested and verified working on a target virtual machine allocated with **4 virtual cores (vCPUs), 4 GB RAM, and a 25 GB virtual hard drive**.  
+> The current recommendation is to run the **Basic Install (`./install.sh --basic`)**. This configuration has been tested and verified on a baseline virtual machine of **4 vCPUs, 4 GB RAM, and a 25 GB disk**.  
+> For optimal performance and active penetration testing, the recommended virtual machine allocation is **8 vCPUs, minimum 8 GB RAM, and 35–50 GB total disk space**.  
 > The **Hyprland** desktop stack (`--all` / `--hyprland`) has not been thoroughly tested yet, and users are strongly advised to avoid it for now and retain the default Fedora GNOME desktop.
 
 | Mode | Flag | Target User / Use Case | Included Components |
@@ -56,6 +57,10 @@ Pendora provides full flexibility over your graphical environment. You can choos
 | **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Hyprland changes.** |
 | **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Hyprland). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Hyprland compositor, Noctalia shell, COPR repo, screensharing systemd targets, and `.config/hypr` dotfiles. |
 | **Hyprland Only** | `--hyprland` (`-W`) | **Modular deployment** of just the desktop layer. | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, deploys custom wallpapers, and deploys `.config/hypr`. |
+
+<p align="center">
+  <img src="assets/Pendora-Gnome.png" width="100%" alt="Pendora GNOME Penetration Testing Desktop Environment" />
+</p>
 ---
 
 ## Requirements & Test Environment
@@ -64,7 +69,14 @@ The scripts and package templates in this project are designed, tested, and vali
 
 * **Operating System**: Up-to-date [Fedora Workstation](https://fedoraproject.org/workstation/) (GNOME Desktop)
 * **Virtualization**: Virtual Machine deployed in **Virtual Machine Manager (`virt-manager`)** powered by **QEMU + KVM**
-* **Tested & Verified VM Specs**: **4 Virtual Cores (vCPUs)**, **4 GB RAM**, and **25 GB Virtual Hard Drive (Disk)**
+* **Minimum Tested Baseline**: **4 Virtual Cores (vCPUs)**, **4 GB RAM**, and **25 GB Virtual Hard Drive (Disk)**
+* **Recommended Specs for Active Use**:
+  * **Processor**: **8 Virtual Cores (vCPUs)** *(recommended for fast multithreaded scanning and cracking: nmap, masscan, ffuf)*
+  * **Memory**: **Minimum 8 GB RAM** *(recommended for running concurrent container stacks: SysReptor, BloodHound, and Portainer alongside Burp Suite and browser)*
+  * **Total Disk Space**: **35–50 GB** *(provides comfortable headroom beyond the ~11 GB install footprint for wordlists, database dumps, and captures)*
+* **Storage Footprint Details**:
+  * **Installation Size**: The full script deploys **~11 GB** of software across native RPMs, Pipx virtualenvs, standalone tools, wordlists (SecLists), and Docker container images. During active installation, peak usage reaches **~18–19 GB** due to temporary package caches and container layer downloads.
+  * **Minimum VM Disk**: **25 GB** *(tested working baseline for a clean installation)*.
 * **Privileges**: Regular user account with `sudo` permissions (**do NOT run the script as `sudo`**)
 * **Connectivity**: Active internet connection to reach Fedora DNF mirrors, GitHub, PyPI, and Docker Hub
 ### Prerequisites Before Running
