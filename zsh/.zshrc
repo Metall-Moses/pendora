@@ -75,9 +75,9 @@ fi
 
 # Authentic Kali Prompt Definition
 configure_prompt() {
-    prompt_symbol="%F{cyan}󰞀%F{%(#.red.blue)}"
+    prompt_symbol=" %F{cyan}󰞀%F{%(#.red.blue)} "
     # Skull symbol for root prompt
-    [ "$EUID" -eq 0 ] && prompt_symbol="%F{yellow}💀%F{red}"
+    [ "$EUID" -eq 0 ] && prompt_symbol=" %F{yellow}💀%F{red} "
 
     case "$PROMPT_ALTERNATIVE" in
         twoline)

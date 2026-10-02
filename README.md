@@ -45,8 +45,11 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 ---
 
 ## Desktop Choice: Retain GNOME or Deploy Hyprland
-
 Pendora provides full flexibility over your graphical environment. You can choose whether you want a headless/GNOME-compatible pentest environment or the full dynamic tiling desktop experience:
+
+> 💡 **Recommendation: Deploy Basic Install (`--basic`)**  
+> The current recommendation is to run the **Basic Install (`./install.sh --basic`)**. This configuration has been thoroughly tested and verified working on a target virtual machine allocated with **4 virtual cores (vCPUs), 4 GB RAM, and a 25 GB virtual hard drive**.  
+> The **Hyprland** desktop stack (`--all` / `--hyprland`) has not been thoroughly tested yet, and users are strongly advised to avoid it for now and retain the default Fedora GNOME desktop.
 
 | Mode | Flag | Target User / Use Case | Included Components |
 |---|---|---|---|
@@ -61,9 +64,9 @@ The scripts and package templates in this project are designed, tested, and vali
 
 * **Operating System**: Up-to-date [Fedora Workstation](https://fedoraproject.org/workstation/) (GNOME Desktop)
 * **Virtualization**: Virtual Machine deployed in **Virtual Machine Manager (`virt-manager`)** powered by **QEMU + KVM**
+* **Tested & Verified VM Specs**: **4 Virtual Cores (vCPUs)**, **4 GB RAM**, and **25 GB Virtual Hard Drive (Disk)**
 * **Privileges**: Regular user account with `sudo` permissions (**do NOT run the script as `sudo`**)
 * **Connectivity**: Active internet connection to reach Fedora DNF mirrors, GitHub, PyPI, and Docker Hub
-
 ### Prerequisites Before Running
 
 1. **Update System First**:
@@ -209,7 +212,7 @@ cd upstreams
 ./install-upstreams.sh portainer sysreptor bloodhound devtunnel responder hack-font
 ```
 
-### 4. Basic Installation (Excluding Hyprland)
+### 4. Basic Installation (Recommended - Excluding Hyprland)
 Install the complete penetration testing environment (all security packages 00-60, Pipx tools, Upstreams/containers, Zsh, Alacritty, Neovim, Hostname) while keeping your existing desktop environment (e.g., GNOME) intact:
 
 ```bash
