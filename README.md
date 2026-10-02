@@ -41,6 +41,7 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 3. **Standalone Upstreams & Containers (`upstreams/`)**: Vendor installers, git clones, and Docker containers for enterprise suites (`metasploit`, `burpsuite`, `seclists`, `evil-winrm`, `zap`, `hack-font`, `portainer`, `sysreptor`, `bloodhound`, `devtunnel`, `responder`).
 4. **Interactive Shell Environment (`zsh/`)**: Interactive Zsh configuration with autosuggestions, syntax highlighting, and pentesting aliases.
 
+> 📖 **Tool Quick-Reference Guide**: For common startup commands, usage examples, keybindings, and dashboard URLs for every tool in this repository, see [assets/TOOL_REFERENCE.md](assets/TOOL_REFERENCE.md).
 ---
 
 ## Desktop Choice: Retain GNOME or Deploy Hyprland
@@ -118,7 +119,8 @@ pendora/
 | **SysReptor** | `8000` (HTTP) | `http://localhost:8000` | Pentest reporting and finding documentation platform |
 | **BloodHound CE** | `8080` (HTTP) | `http://localhost:8080` | Active Directory attack path analysis & visualization |
 
----
+*(For full credentials, startup commands, and terminal workflows across all categories, see the [Tool Reference Guide](assets/TOOL_REFERENCE.md)).*
+
 
 ## How to Customize Package Lists
 
