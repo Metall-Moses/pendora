@@ -220,14 +220,35 @@ ensure_docker_ready() {
 
 install_portainer() {
     log_info "Configuring Docker service and deploying Portainer CE..."
-    ensure_docker_ready || return 1
+    local creds_file="/opt/portainer/admin_setup.txt"
     if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] sudo mkdir -p /opt/portainer"
         echo "  [DRY-RUN] sudo docker volume create portainer_data"
         echo "  [DRY-RUN] sudo docker run -d -p 7999:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest"
+        echo "  [DRY-RUN] Display setup banner and prompt user to copy before continuing"
         echo "  [DRY-RUN] Web interface: https://localhost:7999"
     else
+        ensure_docker_ready || return 1
+
+        # If Portainer container is already running, show setup banner and skip re-deployment
+        if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^portainer"; then
+            log_success "Portainer CE container is already running! Web interface: https://localhost:7999"
+            echo
+            echo -e "${GREEN}${BOLD}====================================================${NC}"
+            echo -e "${GREEN}${BOLD}Portainer CE Web Dashboard${NC}"
+            echo -e "${GREEN}${BOLD}====================================================${NC}"
+            echo -e "  Web URL:   ${BOLD}https://localhost:7999${NC}"
+            echo -e "  Username:  ${BOLD}admin${NC} (set your password on first visit)"
+            echo -e "${YELLOW}  ⚠️  REMINDER: Please set your admin password at https://localhost:7999!${NC}"
+            echo -e "${GREEN}${BOLD}====================================================${NC}"
+            echo
+            read -rp "Please copy the URL above. Press [Enter] to continue: " _
+            return 0
+        fi
+
+        sudo mkdir -p /opt/portainer
         log_info "Creating portainer_data volume..."
-        sudo docker volume create portainer_data
+        sudo docker volume create portainer_data 2>/dev/null || true
         log_info "Deploying Portainer CE container..."
         sudo docker run -d \
             -p 7999:9443 \
@@ -236,6 +257,24 @@ install_portainer() {
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v portainer_data:/data \
             portainer/portainer-ce:latest
+
+        sudo tee "$creds_file" >/dev/null <<EOF
+Web URL:   https://localhost:7999
+Username:  admin (set password on first login)
+Note:      Initial setup must be completed within 5 minutes of first launch.
+EOF
+
+        echo
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "${GREEN}${BOLD}Portainer CE Initial Setup${NC}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "  Web URL:   ${BOLD}https://localhost:7999${NC}"
+        echo -e "  Username:  ${BOLD}admin${NC} (set your password on first login)"
+        echo -e "  Saved to:  ${creds_file}"
+        echo -e "${YELLOW}  ⚠️  REMINDER: You must set your admin password at https://localhost:7999 on first login!${NC}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo
+        read -rp "Please copy the URL above. Press [Enter] to continue: " _
         log_success "Portainer CE deployed successfully! Web interface: https://localhost:7999"
     fi
 }
@@ -269,6 +308,7 @@ install_sysreptor() {
                     echo -e "  Username:  ${BOLD}reptor${NC}"
                     echo -e "  Password:  ${BOLD}${existing_pw}${NC}"
                     echo -e "  Saved to:  ${creds_file}"
+                    echo -e "${YELLOW}  ⚠️  REMINDER: Please change this password on first login!${NC}"
                     echo -e "${GREEN}${BOLD}====================================================${NC}"
                     echo
                     read -rp "Please copy your username and password above. Press [Enter] to continue: " _
@@ -317,6 +357,7 @@ install_sysreptor() {
         echo -e "  Username:  ${BOLD}reptor${NC}"
         echo -e "  Password:  ${BOLD}${generated_pw}${NC}"
         echo -e "  Saved to:  ${creds_file}"
+        echo -e "${YELLOW}  ⚠️  REMINDER: Please change this password on first login!${NC}"
         echo -e "${GREEN}${BOLD}====================================================${NC}"
         echo
         read -rp "Please copy your username and password above. Press [Enter] to continue: " _
@@ -326,29 +367,87 @@ install_sysreptor() {
 install_bloodhound() {
     log_info "Configuring Docker and deploying BloodHound Community Edition (CE)..."
     local install_dir="/opt/bloodhound"
+    local creds_file="${install_dir}/admin_credentials.txt"
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo mkdir -p '$install_dir'"
         echo "  [DRY-RUN] sudo curl -sSL https://ghst.ly/getbhce -o '$install_dir/docker-compose.yml'"
+        echo "  [DRY-RUN] sudo sed -i '/image:/a \\    restart: always' '$install_dir/docker-compose.yml'"
         echo "  [DRY-RUN] cd '$install_dir' && sudo docker compose up -d"
+        echo "  [DRY-RUN] Display credentials banner and prompt user to copy before continuing"
         echo "  [DRY-RUN] BloodHound CE interface will be accessible at: http://localhost:8080"
         echo "  [DRY-RUN] Stack and volumes fully manageable in Portainer at: https://localhost:7999"
     else
         ensure_docker_ready || return 1
+
+        # If BloodHound container stack is already running, show credentials if available and skip re-installation
+        if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^bloodhound"; then
+            log_success "BloodHound CE container stack is already running! Web interface: http://localhost:8080"
+            # Ensure running containers have restart: always enabled for boot persistence
+            sudo docker update --restart=always $(sudo docker ps -q --filter "name=bloodhound") 2>/dev/null || true
+            sudo docker update --restart=always $(sudo docker ps -q --filter "name=app-db") 2>/dev/null || true
+            sudo docker update --restart=always $(sudo docker ps -q --filter "name=graph-db") 2>/dev/null || true
+            if [ -f "$creds_file" ]; then
+                local existing_pw
+                existing_pw=$(grep -E "^Password:" "$creds_file" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '\r\n')
+                if [ -n "$existing_pw" ]; then
+                    echo
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo -e "${GREEN}${BOLD}BloodHound CE Credentials${NC}"
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo -e "  Web URL:   ${BOLD}http://localhost:8080${NC}"
+                    echo -e "  Username:  ${BOLD}admin${NC}"
+                    echo -e "  Password:  ${BOLD}${existing_pw}${NC}"
+                    echo -e "  Saved to:  ${creds_file}"
+                    echo -e "${YELLOW}  ⚠️  REMINDER: You must change this password on first login!${NC}"
+                    echo -e "${GREEN}${BOLD}====================================================${NC}"
+                    echo
+                    read -rp "Please copy your username and password above. Press [Enter] to continue: " _
+                fi
+            fi
+            return 0
+        fi
+
         sudo mkdir -p "$install_dir"
         log_info "Downloading official BloodHound CE docker-compose.yml to $install_dir..."
         sudo curl -sSL https://ghst.ly/getbhce -o "$install_dir/docker-compose.yml"
+        # Ensure all BloodHound CE services auto-start on system boot
+        sudo sed -i '/image:/a \    restart: always' "$install_dir/docker-compose.yml"
         log_info "Starting BloodHound CE stack via docker compose..."
         (cd "$install_dir" && sudo docker compose up -d)
         log_info "Waiting for BloodHound CE container to initialize..."
-        local initial_pw=""
-        for _ in {1..12}; do
-            initial_pw=$(cd "$install_dir" && sudo docker compose logs bloodhound 2>/dev/null | grep -i "initial password" || true)
-            [ -n "$initial_pw" ] && break
+        local raw_pw_line=""
+        local parsed_pw=""
+        for _ in {1..15}; do
+            raw_pw_line=$(cd "$install_dir" && sudo docker compose logs bloodhound 2>/dev/null | grep -i "initial password" | tail -n 1 || true)
+            if [ -n "$raw_pw_line" ]; then
+                parsed_pw=$(echo "$raw_pw_line" | sed -E 's/.*(Initial Password Set To:|initial password is:?)[[:space:]]*//I' | tr -d '\r\n')
+                [ -n "$parsed_pw" ] && break
+            fi
             sleep 2
         done
-        [ -z "$initial_pw" ] && initial_pw="Check 'docker compose logs bloodhound' for initial admin password"
+        [ -z "$parsed_pw" ] && parsed_pw="Run 'cd $install_dir && sudo docker compose logs bloodhound' to view"
+
+        # Save credentials to /opt/bloodhound/admin_credentials.txt
+        sudo tee "$creds_file" >/dev/null <<EOF
+Web URL:   http://localhost:8080
+Username:  admin
+Password:  ${parsed_pw}
+EOF
+
+        echo
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "${GREEN}${BOLD}BloodHound CE Credentials${NC}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo -e "  Web URL:   ${BOLD}http://localhost:8080${NC}"
+        echo -e "  Username:  ${BOLD}admin${NC}"
+        echo -e "  Password:  ${BOLD}${parsed_pw}${NC}"
+        echo -e "  Saved to:  ${creds_file}"
+        echo -e "${YELLOW}  ⚠️  REMINDER: You must change this password on first login!${NC}"
+        echo -e "${GREEN}${BOLD}====================================================${NC}"
+        echo
+        read -rp "Please copy your username and password above. Press [Enter] to continue: " _
+
         log_success "BloodHound CE deployed successfully! Web interface: http://localhost:8080"
-        log_info "$initial_pw"
         log_info "BloodHound stack and volumes are fully manageable in Portainer (https://localhost:7999)."
     fi
 }
