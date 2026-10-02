@@ -56,7 +56,7 @@ Pendora provides full flexibility over your graphical environment. You can choos
 |---|---|---|---|
 | **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Hyprland changes.** |
 | **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Hyprland). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Hyprland compositor, Noctalia shell, COPR repo, screensharing systemd targets, and `.config/hypr` dotfiles. |
-| **Hyprland Only** | `--hyprland` (`-W`) | **Modular deployment** of just the desktop layer. | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, deploys custom wallpapers, and deploys `.config/hypr`. |
+| **Hyprland Desktop** | `--hyprland` (`-W`) | **Deploy complete standalone dynamic tiling desktop.** | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, deploys Hyprland & Noctalia configuration (Pendora theme), Zsh, Neovim/LazyVim, Alacritty, wallpapers, and user profile branding. |
 
 <p align="center">
   <img src="assets/Pendora-Gnome.png" width="100%" alt="Pendora GNOME Penetration Testing Desktop Environment" />
@@ -206,7 +206,7 @@ Install only the specific components you need:
 # Deploy only the Kali/Fedora Zsh configuration
 ./install.sh --zsh
 
-# Deploy Hyprland window manager configuration (.config/hypr)
+# Deploy complete Hyprland desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
 ./install.sh --hyprland
 
 # Deploy Alacritty terminal configuration & Catppuccin theme

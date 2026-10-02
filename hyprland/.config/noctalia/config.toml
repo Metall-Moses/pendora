@@ -1,0 +1,10 @@
+# Noctalia Shell Configuration for Pendora
+# Declarative theme and shell settings
+
+[theme]
+mode = "dark"
+source = "custom"
+custom_palette = "Pendora"
+
+[bar.default]
+position = "top"

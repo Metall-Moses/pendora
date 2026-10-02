@@ -67,7 +67,7 @@ ${BOLD}Options:${NC}
   -u, --upstreams          Run standalone upstream installers (Metasploit, Burp, SecLists, etc.)
   -D, --docker, --containers Install Docker engine and deploy container stacks (Portainer, SysReptor, BloodHound)
   -z, --zsh                Deploy Kali-styled .zshrc configuration
-  -W, --hyprland           Install Hyprland desktop stack, COPR, screensharing, and dotfiles
+  -W, --hyprland           Install Hyprland desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
   -T, --alacritty          Deploy Alacritty terminal configuration & Catppuccin Macchiato theme
   -N, --nvim               Deploy Neovim/LazyVim configuration & Catppuccin Macchiato theme
   -H, --hostname           Set system hostname to 'pendora'
@@ -423,14 +423,16 @@ EOF
 
 deploy_hyprland_config() {
     echo
-    echo -e "${BOLD}Deploying Hyprland Desktop Configuration${NC}"
+    echo -e "${BOLD}Deploying Hyprland Desktop & Noctalia Shell Configuration${NC}"
     echo "===================================================="
     local src_hypr="${SCRIPT_DIR}/hyprland/.config/hypr"
+    local src_noctalia="${SCRIPT_DIR}/hyprland/.config/noctalia"
     local target_user="${SUDO_USER:-$USER}"
     local target_home
     target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
     [ -z "$target_home" ] && target_home="$HOME"
     local dest_hypr="${target_home}/.config/hypr"
+    local dest_noctalia="${target_home}/.config/noctalia"
 
     if [ ! -d "$src_hypr" ]; then
         log_warn "Hyprland source directory not found: $src_hypr"
@@ -438,8 +440,9 @@ deploy_hyprland_config() {
     fi
 
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/hypr"
+        echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/hypr /home/\$USER/.config/noctalia"
         echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/hyprland/.config/hypr/* to /home/\$USER/.config/hypr/"
+        echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/hyprland/.config/noctalia/* to /home/\$USER/.config/noctalia/"
         echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER hyprland')"
     else
         mkdir -p "$dest_hypr"
@@ -447,10 +450,17 @@ deploy_hyprland_config() {
         if [ -f "$src_hypr/.luarc.json" ]; then
             cp "$src_hypr/.luarc.json" "$dest_hypr"/
         fi
-        if [ -n "${SUDO_USER:-}" ]; then
-            chown -R "${target_user}:${target_user}" "$dest_hypr"
+
+        # Deploy Noctalia shell configuration & Pendora palette
+        if [ -d "$src_noctalia" ]; then
+            mkdir -p "$dest_noctalia"
+            cp -r "$src_noctalia"/* "$dest_noctalia"/
         fi
-        log_success "Deployed Hyprland configuration to $dest_hypr"
+
+        if [ -n "${SUDO_USER:-}" ]; then
+            chown -R "${target_user}:${target_user}" "$dest_hypr" "$dest_noctalia" 2>/dev/null || true
+        fi
+        log_success "Deployed Hyprland and Noctalia configuration to $target_home/.config/"
     fi
 }
 deploy_alacritty_config() {
@@ -474,7 +484,10 @@ deploy_alacritty_config() {
         echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/alacritty/.config/alacritty/* to /home/\$USER/.config/alacritty/"
         echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER alacritty')"
     else
-        mkdir -p "$dest_alacritty"
+        if ! command -v alacritty &>/dev/null; then
+            log_info "alacritty not found. Installing alacritty via dnf..."
+            sudo dnf install -y alacritty || true
+        fi
         cp -r "$src_alacritty"/* "$dest_alacritty"/
         if [ -n "${SUDO_USER:-}" ]; then
             chown -R "${target_user}:${target_user}" "$dest_alacritty"
@@ -503,8 +516,10 @@ deploy_nvim_config() {
         echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/nvim/.config/nvim/* to /home/\$USER/.config/nvim/"
         echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER nvim')"
     else
-        mkdir -p "$dest_nvim"
-        cp -r "$src_nvim"/* "$dest_nvim"/
+        if ! command -v nvim &>/dev/null; then
+            log_info "neovim not found. Installing neovim via dnf..."
+            sudo dnf install -y neovim || true
+        fi
         # Copy hidden files (.neoconf.json, stylua.toml, etc.)
         for dotf in "$src_nvim"/.*; do
             [ -f "$dotf" ] && cp "$dotf" "$dest_nvim"/
@@ -725,6 +740,9 @@ while [[ $# -gt 0 ]]; do
         -W|--hyprland)
             INSTALL_HYPRLAND=true
             INSTALL_WALLPAPER=true
+            INSTALL_ZSH=true
+            INSTALL_NVIM=true
+            INSTALL_ALACRITTY=true
             shift
             ;;
         -T|--alacritty)
