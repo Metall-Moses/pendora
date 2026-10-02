@@ -246,7 +246,7 @@ install_sysreptor() {
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo mkdir -p '$install_dir'"
         echo "  [DRY-RUN] curl -fsSL https://docs.sysreptor.com/install.sh -o '$installer_script'"
-        echo "  [DRY-RUN] sed -i 's/read -p/# read -p/g' '$installer_script'"
+        echo "  [DRY-RUN] sed -i 's/read -p .*/true/g' '$installer_script'"
         echo "  [DRY-RUN] cd '$install_dir' && sudo env SYSREPTOR_ENCRYPT='n' CONFIRM='y' CONFIRM_AUTOUPDATE='n' bash '$installer_script'"
         echo "  [DRY-RUN] SysReptor interface will be accessible at: http://localhost:8000"
     else
@@ -263,7 +263,8 @@ install_sysreptor() {
         chmod +x "$installer_script"
 
         # Neutralize all interactive read prompts to enable clean unattended execution
-        sed -i 's/read -p/# read -p/g' "$installer_script"
+        # Neutralize all interactive read prompts with 'true' to prevent empty if/then syntax errors
+        sed -i 's/read -p .*/true/g' "$installer_script"
 
         log_info "Running SysReptor installer in unattended mode (Community Edition)..."
         local creds_file="${install_dir}/admin_credentials.txt"
