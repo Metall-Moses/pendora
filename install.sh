@@ -436,7 +436,7 @@ deploy_nvim_config() {
 }
 deploy_wallpaper() {
     echo
-    echo -e "${BOLD}Deploying Pendora Desktop Wallpapers${NC}"
+    echo -e "${BOLD}Deploying Pendora Desktop Wallpaper & User Profile Logo${NC}"
     echo "===================================================="
     local sys_wp_dir="/usr/share/backgrounds/pendora"
     local target_user="${SUDO_USER:-$USER}"
@@ -458,6 +458,12 @@ deploy_wallpaper() {
         echo "  [DRY-RUN] cp \${SCRIPT_DIR}/assets/wallpaper*.svg $user_wp_dir/"
         echo "  [DRY-RUN] Set GNOME system-wide dconf default background to $default_wp"
         echo "  [DRY-RUN] gsettings set org.gnome.desktop.background picture-uri 'file://$default_wp'"
+        echo "  [DRY-RUN] Copy assets/logo.png to /var/lib/AccountsService/icons/\$USER"
+        echo "  [DRY-RUN] Update /var/lib/AccountsService/users/\$USER (Icon path)"
+        echo "  [DRY-RUN] Copy assets/logo.png to /home/\$USER/.face and .face.icon"
+        echo "  [DRY-RUN] Deploy assets/pendora_darkbackground.svg to $sys_wp_dir/"
+        echo "  [DRY-RUN] Configure GNOME background-logo-extension to display Pendora watermark"
+        echo "  [DRY-RUN] Update /usr/share/fedora-logos/ with Pendora watermark"
     else
         log_info "Installing wallpapers to system library ($sys_wp_dir)..."
         sudo mkdir -p "$sys_wp_dir"
@@ -490,7 +496,74 @@ EOF
             gsettings set org.gnome.desktop.background picture-options 'zoom' 2>/dev/null || true
         fi
 
-        log_success "Pendora wallpapers deployed and set as default desktop background."
+        # 3. Deploy User Profile Picture / Avatar (AccountsService and ~/.face)
+        local logo_png="${SCRIPT_DIR}/assets/logo.png"
+        if [ -f "$logo_png" ]; then
+            log_info "Setting user profile picture to Pendora logo..."
+            # AccountsService system icon
+            sudo mkdir -p /var/lib/AccountsService/icons /var/lib/AccountsService/users
+            sudo cp "$logo_png" "/var/lib/AccountsService/icons/${target_user}"
+            sudo chmod 644 "/var/lib/AccountsService/icons/${target_user}"
+
+            # AccountsService user configuration file
+            local user_account_file="/var/lib/AccountsService/users/${target_user}"
+            if [ -f "$user_account_file" ]; then
+                if grep -q "^Icon=" "$user_account_file"; then
+                    sudo sed -i "s|^Icon=.*|Icon=/var/lib/AccountsService/icons/${target_user}|" "$user_account_file"
+                else
+                    echo "Icon=/var/lib/AccountsService/icons/${target_user}" | sudo tee -a "$user_account_file" >/dev/null
+                fi
+            else
+                sudo tee "$user_account_file" >/dev/null <<EOF
+[User]
+Icon=/var/lib/AccountsService/icons/${target_user}
+EOF
+            fi
+            sudo chmod 600 "$user_account_file" 2>/dev/null || true
+
+            # Display manager & desktop shell fallback (~/.face and ~/.face.icon)
+            cp "$logo_png" "${target_home}/.face" 2>/dev/null || true
+            cp "$logo_png" "${target_home}/.face.icon" 2>/dev/null || true
+            if [ -n "${SUDO_USER:-}" ]; then
+                chown "${target_user}:${target_user}" "${target_home}/.face" "${target_home}/.face.icon" 2>/dev/null || true
+            fi
+            log_success "User profile picture updated for '$target_user'."
+        fi
+
+        # 4. Deploy Desktop Corner Watermark (GNOME background-logo-extension)
+        local watermark_svg="${SCRIPT_DIR}/assets/pendora_darkbackground.svg"
+        if [ -f "$watermark_svg" ]; then
+            log_info "Replacing desktop corner watermark with Pendora branding..."
+            local dest_watermark="${sys_wp_dir}/pendora_darkbackground.svg"
+            sudo cp "$watermark_svg" "$dest_watermark"
+            sudo chmod 644 "$dest_watermark"
+
+            # GNOME dconf override for background-logo-extension
+            sudo tee "${dconf_dir}/01-pendora-background-logo" >/dev/null <<EOF
+[org/fedorahosted/background-logo-extension]
+logo-file='${dest_watermark}'
+logo-file-dark='${dest_watermark}'
+logo-always-visible=true
+EOF
+            sudo dconf update 2>/dev/null || true
+
+            # Dynamic gsettings update if desktop session is active
+            if command -v gsettings &>/dev/null; then
+                gsettings set org.fedorahosted.background-logo-extension logo-file-dark "$dest_watermark" 2>/dev/null || true
+                gsettings set org.fedorahosted.background-logo-extension logo-file "$dest_watermark" 2>/dev/null || true
+                gsettings set org.fedorahosted.background-logo-extension logo-always-visible true 2>/dev/null || true
+            fi
+
+            # Direct fallback replacement in /usr/share/fedora-logos if directory exists
+            if [ -d /usr/share/fedora-logos ]; then
+                [ ! -f /usr/share/fedora-logos/fedora_darkbackground.svg.bak ] && sudo cp /usr/share/fedora-logos/fedora_darkbackground.svg /usr/share/fedora-logos/fedora_darkbackground.svg.bak 2>/dev/null || true
+                sudo cp "$watermark_svg" /usr/share/fedora-logos/fedora_darkbackground.svg 2>/dev/null || true
+                sudo cp "$watermark_svg" /usr/share/fedora-logos/fedora_lightbackground.svg 2>/dev/null || true
+            fi
+            log_success "Desktop corner watermark updated to Pendora branding."
+        fi
+
+        log_success "Pendora desktop branding deployed successfully."
     fi
 }
 
@@ -803,6 +876,11 @@ if [ "$SET_HOSTNAME" = true ]; then
 fi
 
 log_success "Pendora execution completed!"
+
+# Do not prompt for reboot if only wallpaper & profile logo was deployed
+if [ "$INSTALL_WALLPAPER" = true ] && [ "$RUN_ALL" = false ] && [ "$RUN_BASIC" = false ] && [ "$RUN_PACKAGES" = false ] && [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_HYPRLAND" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_DOCKER_CONTAINERS" = false ] && [ "$SET_HOSTNAME" = false ]; then
+    REBOOT=false
+fi
 
 if [ "$REBOOT" = true ]; then
     echo

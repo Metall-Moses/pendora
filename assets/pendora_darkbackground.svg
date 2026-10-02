@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="280" height="80">
+  <defs>
+    <!-- Shield Background Gradient -->
+    <linearGradient id="shieldBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#182d4d" />
+      <stop offset="45%" stop-color="#101e33" />
+      <stop offset="100%" stop-color="#0b1422" />
+    </linearGradient>
+
+    <!-- Shield Border Gradient -->
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58E1FF" />
+      <stop offset="40%" stop-color="#51A2DA" />
+      <stop offset="80%" stop-color="#3c6eb4" />
+      <stop offset="100%" stop-color="#2a528a" />
+    </linearGradient>
+
+    <!-- Fedora P Ribbon Gradient -->
+    <linearGradient id="pRibbon" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#72e4ff" />
+      <stop offset="28%" stop-color="#51A2DA" />
+      <stop offset="70%" stop-color="#3877c9" />
+      <stop offset="100%" stop-color="#255ba4" />
+    </linearGradient>
+
+    <!-- Crossbar Gradient -->
+    <linearGradient id="crossbarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="65%" stop-color="#f0faff" />
+      <stop offset="100%" stop-color="#d4f1ff" />
+    </linearGradient>
+  </defs>
+
+  <!-- ======================================================== -->
+  <!-- 1. PENDORA EMBLEM (Left: 64x64 at x=8, y=8)              -->
+  <!-- ======================================================== -->
+  <g transform="translate(8, 8) scale(0.125)">
+    <!-- Outer Shield -->
+    <path d="M 256, 44
+             C 374, 44 436, 80 436, 184
+             C 436, 316 340, 412 256, 466
+             C 172, 412 76, 316 76, 184
+             C 76, 80 138, 44 256, 44 Z"
+          fill="url(#shieldBg)"
+          stroke="url(#shieldBorder)"
+          stroke-width="7"
+          stroke-linejoin="round" />
+
+    <!-- Inner Accent Line -->
+    <path d="M 256, 56
+             C 362, 56 422, 88 422, 184
+             C 422, 304 332, 396 256, 448
+             C 180, 396 90, 304 90, 184
+             C 90, 88 150, 56 256, 56 Z"
+          fill="none"
+          stroke="#51A2DA"
+          stroke-width="2"
+          opacity="0.3" />
+
+    <!-- The P Ribbon -->
+    <path d="M 206, 356
+             L 206, 148
+             L 252, 148
+             C 292, 148 322, 172 322, 202
+             C 322, 232 292, 256 252, 256
+             L 206, 256"
+          fill="none"
+          stroke="url(#pRibbon)"
+          stroke-width="44"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+
+    <!-- Crossbar -->
+    <rect x="156" y="194" width="94" height="16" rx="8" fill="url(#crossbarGrad)" />
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- 2. "pendora" WORDMARK (Geometric Sans Typography)         -->
+  <!-- ======================================================== -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- p (stem at 88, bowl to 112) -->
+    <path d="M 88, 27 V 63 M 88, 27 H 99 C 109, 27 113, 33 113, 40 C 113, 47 109, 53 99, 53 H 88" />
+
+    <!-- e (bar at 40, bowl from 122 to 142) -->
+    <path d="M 122, 40 H 142 C 142, 30 136, 27 132, 27 C 124, 27 122, 33 122, 40 C 122, 47 124, 53 132, 53 C 139, 53 142, 49 142, 46" />
+
+    <!-- n (stem at 152, arch to 171) -->
+    <path d="M 152, 53 V 27 M 152, 33 C 156, 27 165, 27 168, 30 C 171, 33 171, 38 171, 43 V 53" />
+
+    <!-- d (stem at 200, bowl from 179 to 200) -->
+    <path d="M 200, 14 V 53 M 200, 53 H 190 C 181, 53 179, 47 179, 40 C 179, 33 181, 27 190, 27 H 200" />
+
+    <!-- o (circle from 208 to 228) -->
+    <path d="M 218, 27 C 210, 27 208, 34 208, 40 C 208, 46 210, 53 218, 53 C 226, 53 228, 46 228, 40 C 228, 34 226, 27 218, 27 Z" />
+
+    <!-- r (stem at 236, arch to 249) -->
+    <path d="M 236, 53 V 27 M 236, 34 C 238, 28 244, 27 249, 28" />
+
+    <!-- a (clean round bowl from 256 to 273, stem at 273) -->
+    <path d="M 273, 27 V 53 M 273, 40 C 273, 31 267, 27 262, 27 C 255, 27 253, 33 253, 40 C 253, 47 255, 53 262, 53 C 267, 53 273, 49 273, 40" />
+  </g>
+
+</svg>
