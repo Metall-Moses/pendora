@@ -225,7 +225,8 @@ install_portainer() {
         echo "  [DRY-RUN] sudo mkdir -p /opt/portainer"
         echo "  [DRY-RUN] sudo docker volume create portainer_data"
         echo "  [DRY-RUN] sudo docker run -d -p 7999:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest"
-        echo "  [DRY-RUN] Display setup banner and prompt user to copy before continuing"
+        echo "  [DRY-RUN] Extract setup_token from container logs"
+        echo "  [DRY-RUN] Display setup token banner and prompt user to copy before continuing"
         echo "  [DRY-RUN] Web interface: https://localhost:7999"
     else
         ensure_docker_ready || return 1
@@ -233,16 +234,26 @@ install_portainer() {
         # If Portainer container is already running, show setup banner and skip re-deployment
         if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^portainer"; then
             log_success "Portainer CE container is already running! Web interface: https://localhost:7999"
+            local existing_token=""
+            if [ -f "$creds_file" ]; then
+                existing_token=$(grep -E "^Setup Token:" "$creds_file" 2>/dev/null | cut -d: -f2- | tr -d ' \r\n' || true)
+            fi
+            if [ -z "$existing_token" ]; then
+                existing_token=$(sudo docker logs portainer 2>&1 | grep -oE "setup_token=[a-zA-Z0-9._-]+" | cut -d= -f2 | head -n 1 | tr -d '\r\n' || true)
+            fi
+            [ -z "$existing_token" ] && existing_token="Already initialized or check 'sudo docker logs portainer'"
+
             echo
             echo -e "${GREEN}${BOLD}====================================================${NC}"
             echo -e "${GREEN}${BOLD}Portainer CE Web Dashboard${NC}"
             echo -e "${GREEN}${BOLD}====================================================${NC}"
-            echo -e "  Web URL:   ${BOLD}https://localhost:7999${NC}"
-            echo -e "  Username:  ${BOLD}admin${NC} (set your password on first visit)"
-            echo -e "${YELLOW}  ⚠️  REMINDER: Please set your admin password at https://localhost:7999!${NC}"
+            echo -e "  Web URL:      ${BOLD}https://localhost:7999${NC}"
+            echo -e "  Username:     ${BOLD}admin${NC}"
+            echo -e "  Setup Token:  ${BOLD}${existing_token}${NC}"
+            echo -e "${YELLOW}  ⚠️  REMINDER: Access https://localhost:7999 to complete admin setup!${NC}"
             echo -e "${GREEN}${BOLD}====================================================${NC}"
             echo
-            read -rp "Please copy the URL above. Press [Enter] to continue: " _
+            read -rp "Please copy the Setup Token and URL above. Press [Enter] to continue: " _
             return 0
         fi
 
@@ -258,23 +269,34 @@ install_portainer() {
             -v portainer_data:/data \
             portainer/portainer-ce:latest
 
+        log_info "Waiting for Portainer CE container to initialize and generate setup token..."
+        local setup_token=""
+        for _ in {1..15}; do
+            setup_token=$(sudo docker logs portainer 2>&1 | grep -oE "setup_token=[a-zA-Z0-9._-]+" | cut -d= -f2 | head -n 1 | tr -d '\r\n' || true)
+            [ -n "$setup_token" ] && break
+            sleep 1
+        done
+        [ -z "$setup_token" ] && setup_token="Check 'sudo docker logs portainer' for setup_token"
+
         sudo tee "$creds_file" >/dev/null <<EOF
-Web URL:   https://localhost:7999
-Username:  admin (set password on first login)
-Note:      Initial setup must be completed within 5 minutes of first launch.
+Web URL:      https://localhost:7999
+Username:     admin
+Setup Token:  ${setup_token}
+Note:         Initial setup must be completed within 5 minutes of first launch.
 EOF
 
         echo
         echo -e "${GREEN}${BOLD}====================================================${NC}"
         echo -e "${GREEN}${BOLD}Portainer CE Initial Setup${NC}"
         echo -e "${GREEN}${BOLD}====================================================${NC}"
-        echo -e "  Web URL:   ${BOLD}https://localhost:7999${NC}"
-        echo -e "  Username:  ${BOLD}admin${NC} (set your password on first login)"
-        echo -e "  Saved to:  ${creds_file}"
-        echo -e "${YELLOW}  ⚠️  REMINDER: You must set your admin password at https://localhost:7999 on first login!${NC}"
+        echo -e "  Web URL:      ${BOLD}https://localhost:7999${NC}"
+        echo -e "  Username:     ${BOLD}admin${NC}"
+        echo -e "  Setup Token:  ${BOLD}${setup_token}${NC}"
+        echo -e "  Saved to:     ${creds_file}"
+        echo -e "${YELLOW}  ⚠️  REMINDER: Copy the Setup Token above to unlock initial admin setup at https://localhost:7999!${NC}"
         echo -e "${GREEN}${BOLD}====================================================${NC}"
         echo
-        read -rp "Please copy the URL above. Press [Enter] to continue: " _
+        read -rp "Please copy the Setup Token and URL above. Press [Enter] to continue: " _
         log_success "Portainer CE deployed successfully! Web interface: https://localhost:7999"
     fi
 }
