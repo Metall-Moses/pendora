@@ -47,15 +47,16 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 ## Desktop Choice: Retain GNOME or Deploy Sway
 Pendora provides full flexibility over your graphical environment. You can choose whether you want a headless/GNOME-compatible pentest environment or the full dynamic tiling desktop experience:
 
-> 💡 **Recommendation: Deploy Basic Install (`--basic`) or Full Sway Desktop (`--sway` / `--all`)**  
-> * **Basic Install (`./install.sh --basic`)**: Keeps your default Fedora desktop (e.g. GNOME) intact while setting up all penetration testing tools, pipx utilities, Docker containers, and Kali-styled terminal configurations.
-> * **Sway Desktop (`./install.sh --sway`)**: Deploys the lightweight, i3-compatible **Sway** Wayland tiling compositor paired with the modern **Noctalia** shell, Catppuccin Alacritty terminal, and screensharing portal services. Sway is **100% native in standard Fedora repositories** (zero external COPR repositories needed!).
+> 💡 **Testing Status & Recommendations:**  
+> * **Tested & Verified — Basic Pentest Setup (`./install.sh --basic`)**: Keeps your default Fedora GNOME desktop intact while deploying all pentest CLI tools, Pipx tools, Docker container suites, Zsh, Neovim, and Alacritty.
+> * **Tested & Verified — Sway Dynamic Desktop (`./install.sh --sway`)**: Deploys the lightweight Sway tiling compositor, Noctalia desktop shell, Hack Nerd Font, focus-based window opacity, crisp 1080p display rendering, and automatic GNOME keyboard layout inheritance. 100% native Fedora RPMs (no COPR required).
+> * **Active Testing / WIP — Full Installation (`./install.sh --all`)**: End-to-end single-pass execution combining both the entire pentest tool stack and the Sway desktop environment. This comprehensive transaction is currently undergoing active testing.
 
-| Mode | Flag | Target User / Use Case | Included Components |
+| Mode | Flag | Validation Status | Included Components |
 |---|---|---|---|
-| **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Sway changes.** |
-| **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Sway). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Sway compositor, Noctalia shell, screensharing systemd targets, and `.config/sway` dotfiles. |
-| **Sway Desktop** | `--sway` (`-W`) | **Deploy complete standalone dynamic tiling desktop.** | Installs `70-sway.list`, sets up screensharing systemd service, deploys Sway & Noctalia configuration (Pendora theme), Zsh, Neovim/LazyVim, Alacritty, wallpapers, and user profile branding. |
+| **Sway Desktop** | `--sway` (`-W`) | **Tested & Verified** | Installs `70-sway.list`, sets up screensharing user unit, deploys Sway & Noctalia configuration (Pendora theme), focus opacity daemon, GNOME keyboard auto-sync, Zsh, Neovim, Alacritty, and custom wallpapers. |
+| **Basic Pentest** | `--basic` (`-b`) | **Tested & Verified** | Retains existing GNOME desktop. Deploys all pentest packages (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty, Neovim/LazyVim, hostname, and wallpapers. **Zero desktop/window manager changes.** |
+| **Full Desktop** | `--all` (`-a`) | **Under Testing** | Single-pass combination of everything in Basic **plus** Sway desktop stack (`70-sway.list`, Sway/Noctalia dotfiles, screensharing portal services). |
 <p align="center">
   <img src="assets/Pendora-Gnome.png" width="100%" alt="Pendora GNOME Penetration Testing Desktop Environment" />
 </p>
@@ -223,8 +224,19 @@ cd upstreams
 ./install-upstreams.sh portainer sysreptor bloodhound devtunnel responder hack-font
 ```
 
-### 4. Basic Installation (Recommended - Excluding Sway)
-Install the complete penetration testing environment (all security packages 00-60, Pipx tools, Upstreams/containers, Zsh, Alacritty, Neovim, Hostname) while keeping your existing desktop environment (e.g., GNOME) intact:
+### 4. Sway Dynamic Desktop (`--sway` / `-W`) — Tested & Verified
+Deploys the complete standalone Sway Wayland tiling compositor, Noctalia shell, dynamic opacity, Hack Nerd Font, and terminal configurations:
+
+```bash
+# Interactive run
+./install.sh --sway
+
+# Non-interactive automated run
+./install.sh --sway --yes
+```
+
+### 5. Basic Installation (`--basic` / `-b`) — Tested & Verified
+Installs the complete penetration testing environment (all security packages 00-60, Pipx tools, upstreams, Docker containers, Zsh, Alacritty, Neovim, hostname) while keeping your existing GNOME desktop intact:
 
 ```bash
 # Interactive run
@@ -234,11 +246,11 @@ Install the complete penetration testing environment (all security packages 00-6
 ./install.sh --basic --yes
 ```
 
-### 5. Full Installation (Including Sway Desktop)
-Installs the complete toolkit and sets up the Sway tiling compositor stack (`70-sway.list`, screensharing systemd target, and `.config/sway` configuration):
+### 6. Full Installation (`--all` / `-a`) — Work in Progress
+> ⚠️ **Notice**: The full end-to-end installation (`--all`) combines all pentest tools, Docker containers, and the Sway desktop into a single run. This multi-stage deployment is currently under active testing.
 
 ```bash
-# Interactive run (prompts before DNF transaction)
+# Interactive run
 ./install.sh --all
 
 # Non-interactive automated run
