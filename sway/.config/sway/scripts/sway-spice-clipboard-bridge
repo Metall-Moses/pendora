@@ -3,20 +3,46 @@
 sway-spice-clipboard-bridge - Bidirectional SPICE Host <-> Sway Guest Clipboard Bridge.
 
 Bypasses wlroots Xwayland window-focus gating by managing the X11 CLIPBOARD selection
-as a GTK client while relaying changes to/from Wayland via wl-paste and wl-copy.
+as a real GTK client while relaying changes to/from Wayland via wl-paste and wl-copy.
 Automatically active in QEMU/KVM SPICE guests.
 """
 
+import fcntl
+import glob
 import os
 import signal
 import subprocess
 import sys
 import threading
+import time
+
+# Singleton lock: prevent duplicate processes
+lock_path = f"/tmp/sway-spice-clipboard-bridge-{os.getuid()}.lock"
+try:
+    lock_file = open(lock_path, "w")
+    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except (BlockingIOError, OSError):
+    sys.exit(0)
+
+# Check if running in a SPICE virtual machine
+is_spice = (
+    os.path.exists("/run/spice-vdagentd/spice-vdagent-sock")
+    or os.path.exists("/dev/virtio-ports/com.redhat.spice.0")
+)
+if not is_spice:
+    sys.exit(0)
 
 os.environ.setdefault("GDK_BACKEND", "x11")
-# GTK must connect to Xwayland, but wl-copy/wl-paste need the Wayland socket
+
+# Clean environment copy for Wayland subcommands (wl-copy, wl-paste)
 WL_ENV = dict(os.environ)
 os.environ.pop("WAYLAND_DISPLAY", None)
+
+# Locate WAYLAND_DISPLAY if not set in environment (e.g. under systemd --user)
+if "WAYLAND_DISPLAY" not in WL_ENV:
+    wl_socks = glob.glob(f"/run/user/{os.getuid()}/wayland-[0-9]*")
+    if wl_socks:
+        WL_ENV["WAYLAND_DISPLAY"] = os.path.basename(wl_socks[0])
 
 import gi
 
@@ -24,7 +50,6 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
 TEXT_MIME = "text/plain;charset=utf-8"
-DISPLAY = os.environ.get("DISPLAY", ":0")
 SAFETY_NET_MS = 10000
 
 last_text = None
@@ -121,9 +146,28 @@ def shutdown(*_a):
     Gtk.main_quit()
 
 
-display = Gdk.Display.open(DISPLAY)
+# Retry loop to connect to Xwayland (up to 30s)
+display = None
+for attempt in range(60):
+    target_disp = os.environ.get("DISPLAY")
+    if not target_disp:
+        x_socks = sorted(glob.glob("/tmp/.X11-unix/X[0-9]*"))
+        if x_socks:
+            target_disp = ":" + os.path.basename(x_socks[-1])[1:]
+            os.environ["DISPLAY"] = target_disp
+
+    if target_disp:
+        try:
+            display = Gdk.Display.open(target_disp)
+            if display is not None:
+                break
+        except Exception:
+            pass
+
+    time.sleep(0.5)
+
 if display is None:
-    log(f"FATAL: cannot open X display {DISPLAY} (is Xwayland running?)")
+    log("Could not open Xwayland display after 30s. Exiting.")
     sys.exit(1)
 
 clipboard = Gtk.Clipboard.get_for_display(display, Gdk.SELECTION_CLIPBOARD)
@@ -134,5 +178,5 @@ signal.signal(signal.SIGINT, shutdown)
 clipboard.connect("owner-change", on_owner_change)
 threading.Thread(target=watch_wayland, daemon=True).start()
 GLib.timeout_add(SAFETY_NET_MS, reconcile)
-log(f"Started on DISPLAY={DISPLAY}")
+log(f"Started on DISPLAY={os.environ.get('DISPLAY')}")
 Gtk.main()

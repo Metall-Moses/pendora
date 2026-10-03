@@ -5,6 +5,8 @@
 #---- STARTUP ----
 #-----------------
 xwayland enable
+exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
+exec hash dbus-update-activation-environment 2>/dev/null && dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
 exec systemctl --user start sway-session.target
 exec /usr/libexec/xdg-desktop-portal-wlr -r
 exec sleep 1 && /usr/libexec/xdg-desktop-portal-gtk
@@ -84,6 +86,7 @@ exec wl-paste --type image --watch cliphist store
 exec_always python3 ~/.config/sway/scripts/inactive-windows-transparency.py --focused 1.0 --opacity 0.88
 exec_always ~/.config/sway/scripts/apply-gnome-keyboard-layout.sh
 exec spice-vdagent -x
+exec ~/.config/sway/scripts/sway-spice-clipboard-bridge
 
 #---------------------
 #---- KEYBINDINGS ----
