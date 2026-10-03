@@ -555,6 +555,7 @@ deploy_wallpaper() {
         echo "  [DRY-RUN] Deploy assets/pendora_darkbackground.svg to $sys_wp_dir/"
         echo "  [DRY-RUN] Configure GNOME background-logo-extension to display Pendora watermark"
         echo "  [DRY-RUN] Update /usr/share/fedora-logos/ with Pendora watermark"
+        echo "  [DRY-RUN] Set Noctalia shell default wallpaper to $default_wp"
     else
         log_info "Installing wallpapers to system library ($sys_wp_dir)..."
         sudo mkdir -p "$sys_wp_dir"
@@ -652,6 +653,30 @@ EOF
                 sudo cp "$watermark_svg" /usr/share/fedora-logos/fedora_lightbackground.svg 2>/dev/null || true
             fi
             log_success "Desktop corner watermark updated to Pendora branding."
+        fi
+
+        # 5. Pre-configure Noctalia Shell Wallpaper Override
+        local noctalia_state_dir="${target_home}/.local/state/noctalia"
+        mkdir -p "$noctalia_state_dir"
+        local noctalia_settings="${noctalia_state_dir}/settings.toml"
+        if [ -f "$noctalia_settings" ]; then
+            if grep -q "\[wallpaper\.default\]" "$noctalia_settings"; then
+                sed -i "/\[wallpaper\.default\]/{n;s|path = .*|path = \"${default_wp}\"|}" "$noctalia_settings"
+            else
+                cat >> "$noctalia_settings" <<EOF
+
+[wallpaper.default]
+path = "${default_wp}"
+EOF
+            fi
+        else
+            cat > "$noctalia_settings" <<EOF
+[wallpaper.default]
+path = "${default_wp}"
+EOF
+        fi
+        if [ -n "${SUDO_USER:-}" ]; then
+            chown -R "${target_user}:${target_user}" "$noctalia_state_dir" 2>/dev/null || true
         fi
 
         log_success "Pendora desktop branding deployed successfully."

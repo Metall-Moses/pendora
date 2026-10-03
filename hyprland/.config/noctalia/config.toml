@@ -8,3 +8,10 @@ custom_palette = "Pendora"
 
 [bar.default]
 position = "top"
+
+[wallpaper]
+enabled = true
+fill_mode = "crop"
+
+[wallpaper.default]
+path = "/usr/share/backgrounds/pendora/wallpaper.svg"
