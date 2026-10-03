@@ -55,7 +55,7 @@ Pendora provides full flexibility over your graphical environment. You can choos
 > Installing Sway does not remove or alter your GNOME desktop. You can seamlessly switch between **GNOME** and **Sway** at any time on the login screen (GDM): click your username, select the gear icon (⚙️) in the bottom-right corner, and select your desired session before entering your password.
 > 💡 **Testing Status & Recommendations:**  
 > * **Tested & Verified — Full Installation (`./install.sh --all` / `--all --yes`)**: End-to-end single-pass deployment verifying all native security packages (00–70), Pipx tools, Upstream suites, Docker containers, and the Sway tiling desktop environment.
-> * **Tested & Verified — Sway Dynamic Desktop (`./install.sh --sway`)**: Standalone deployment of the lightweight Sway tiling compositor, Noctalia desktop shell, Hack Nerd Font, focus-based window opacity, crisp 1080p display rendering, and automatic GNOME keyboard layout inheritance. 100% native Fedora RPMs (zero COPR repositories required).
+> * **Tested & Verified — Sway Dynamic Desktop (`./install.sh --sway`)**: Deploys the lightweight Sway tiling compositor, Noctalia desktop shell, Hack Nerd Font, focus-based window opacity, crisp 1080p display rendering, automatic GNOME keyboard layout inheritance, and bidirectional SPICE host/guest clipboard sharing. 100% native Fedora RPMs (zero COPR repositories required).
 > * **Tested & Verified — Basic Pentest Setup (`./install.sh --basic`)**: Keeps your default Fedora GNOME desktop intact while deploying all pentest CLI tools, Pipx tools, Docker container suites, Zsh, Neovim, and Alacritty.
 
 | Mode | Flag | Validation Status | Included Components |
@@ -292,8 +292,8 @@ sudo reboot
   The automated Portainer CE container deployment is currently not initializing properly during the upstream installation phase.  
   > ℹ️ **Isolated Scope**: This issue is confined strictly to Portainer itself and **does not affect any other container stacks** (such as SysReptor or BloodHound CE), which build, initialize, and operate normally.
 
-* **Sway Virtual Machine Limitations (Work in Progress)**:  
+* **Sway Virtual Machine Viewer Rescaling (Work in Progress)**:  
   When running the Sway session inside a virtual machine (e.g., `virt-manager` / QEMU with SPICE):
-  * **Host-to-VM Clipboard Sharing**: Bidirectional copy-paste synchronization between the host machine and the virtual machine does not currently function properly under the Sway Wayland session.
-  * **Window Rescaling**: Rescaling or resizing the virtual machine viewer window does not resize the desktop in full.  
-  > 💡 **Workaround**: If seamless host-to-guest clipboard sharing or full display scaling is required for a specific assessment, you can simply select **GNOME** on the login screen (GDM), where SPICE guest agent clipboard and display integration are natively supported.
+  * **Window Rescaling**: Dynamically dragging or rescaling the virtual machine viewer window does not resize the desktop session in full (session operates at configured 1080p).
+  * **Host-to-VM Clipboard Sharing (Resolved & Verified)**: Bidirectional copy-paste between host and guest operates out of the box via the integrated `sway-spice-clipboard-bridge` service and `spice-vdagent -x`.  
+  > 💡 **Tip**: If dynamic display auto-rescaling on window drag is required for a specific workflow, you can simply select **GNOME** on the login screen (GDM), where SPICE guest agent display auto-configuration is natively supported.
