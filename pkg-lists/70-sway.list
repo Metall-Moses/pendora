@@ -21,3 +21,6 @@ rofi                        # Window switcher and application runner
 grim                        # Screenshot utility for Wayland / wlroots
 slurp                       # Region selection tool for Wayland (used by grim)
 nautilus                    # GNOME file manager
+
+# --- Dynamic Window Opacity & IPC ---
+python3-i3ipc               # Python IPC library for Sway focus-based opacity daemon

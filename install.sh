@@ -483,6 +483,82 @@ deploy_sway_config() {
     echo "===================================================="
     ensure_hack_nerd_font
     stow_module "sway"
+
+    local target_user="${SUDO_USER:-$USER}"
+    local target_home
+    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
+    [ -z "$target_home" ] && target_home="$HOME"
+
+    # Detect GNOME & system keyboard layout to match user's pre-existing choice
+    local sources=""
+    local layouts=()
+    local variants=()
+
+    if [ -n "${SUDO_USER:-}" ]; then
+        sources="$(sudo -u "$target_user" gsettings get org.gnome.desktop.input-sources sources 2>/dev/null || true)"
+    fi
+    if [ -z "$sources" ] && command -v gsettings &>/dev/null; then
+        sources="$(gsettings get org.gnome.desktop.input-sources sources 2>/dev/null || true)"
+    fi
+
+    local x11_layout=""
+    local x11_variant=""
+    if [ -z "$sources" ] || [ "$sources" = "@a(ss) []" ]; then
+        if command -v localectl &>/dev/null; then
+            x11_layout="$(localectl status 2>/dev/null | awk -F: '/X11 Layout/ {gsub(/^[ \t]+/, "", $2); print $2}')"
+            x11_variant="$(localectl status 2>/dev/null | awk -F: '/X11 Variant/ {gsub(/^[ \t]+/, "", $2); print $2}')"
+        fi
+        if [ -z "$x11_layout" ] && [ -f /etc/vconsole.conf ]; then
+            x11_layout="$(grep '^KEYMAP=' /etc/vconsole.conf 2>/dev/null | cut -d= -f2 | tr -d '"'"'" || true)"
+        fi
+    fi
+
+    if [ -n "$sources" ] && [ "$sources" != "@a(ss) []" ]; then
+        for item in $(echo "$sources" | grep -oP "'xkb',\s*'\K[^']+"); do
+            [ -z "$item" ] && continue
+            if [[ "$item" == *"+"* ]]; then
+                layouts+=("${item%%+*}")
+                variants+=("${item#*+}")
+            else
+                layouts+=("$item")
+                variants+=("")
+            fi
+        done
+    fi
+
+    local final_layout=""
+    local final_variant=""
+    if [ ${#layouts[@]} -gt 0 ]; then
+        final_layout="$(IFS=,; echo "${layouts[*]}")"
+        final_variant="$(IFS=,; echo "${variants[*]}")"
+    elif [ -n "$x11_layout" ]; then
+        final_layout="$x11_layout"
+        final_variant="$x11_variant"
+    else
+        final_layout="us"
+    fi
+
+    local config_d="${target_home}/.config/sway/config.d"
+    local kb_conf="${config_d}/keyboard.conf"
+
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [DRY-RUN] Detect GNOME/system keyboard layout: $final_layout (variant: ${final_variant:-none})"
+        echo "  [DRY-RUN] Write $kb_conf with xkb_layout \"$final_layout\""
+    else
+        mkdir -p "$config_d"
+        cat > "$kb_conf" <<EOF
+# Automatically detected from GNOME/system settings
+input type:keyboard {
+    xkb_layout "${final_layout}"
+$( [ -n "$final_variant" ] && echo "    xkb_variant \"${final_variant}\"" )
+$( [[ "$final_layout" == *","* ]] && echo "    xkb_options \"grp:alt_shift_toggle\"" )
+}
+EOF
+        if [ -n "${SUDO_USER:-}" ]; then
+            chown -R "${target_user}:${target_user}" "$config_d" 2>/dev/null || true
+        fi
+        log_success "Configured Sway keyboard layout to: ${BOLD}${final_layout}${NC} (from GNOME/system)"
+    fi
 }
 
 deploy_alacritty_config() {
@@ -749,6 +825,7 @@ while [[ $# -gt 0 ]]; do
             INSTALL_ZSH=true
             INSTALL_NVIM=true
             INSTALL_ALACRITTY=true
+            SET_HOSTNAME=true
             shift
             ;;
         -T|--alacritty)

@@ -79,18 +79,28 @@ configure_prompt() {
     # Skull symbol for root prompt
     [ "$EUID" -eq 0 ] && prompt_symbol=" %F{yellow}💀%F{red} "
 
+    # Hostname: Default to 'pendora' if running under generic default hostnames (fedora, localhost)
+    local prompt_host="${PROMPT_HOST:-}"
+    if [ -z "$prompt_host" ]; then
+        if [[ "${HOST:-}" =~ ^(fedora|localhost)(\..*)?$ ]] || [ -z "${HOST:-}" ]; then
+            prompt_host="pendora"
+        else
+            prompt_host="%m"
+        fi
+    fi
+
     case "$PROMPT_ALTERNATIVE" in
         twoline)
             # Two-line Kali prompt:
             # ┌──(user㉿host)-[~/path]
             # └─$
-            PROMPT=$'%F{%(#.blue.green)}┌──${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.green)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
+            PROMPT=$'%F{%(#.blue.green)}┌──${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$prompt_host$'%b%F{%(#.blue.green)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             ;;
         oneline)
-            PROMPT=$'${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{%(#.red.blue)}%n@%m%b%F{reset}:%B%F{%(#.blue.green)}%~%b%F{reset}%(#.#.$) '
+            PROMPT=$'${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{%(#.red.blue)}%n@'$prompt_host$'%b%F{reset}:%B%F{%(#.blue.green)}%~%b%F{reset}%(#.#.$) '
             ;;
         backtrack)
-            PROMPT=$'${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{red}%n@%m%b%F{reset}:%B%F{blue}%~%b%F{reset}%(#.#.$) '
+            PROMPT=$'${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{red}%n@'$prompt_host$'%b%F{reset}:%B%F{blue}%~%b%F{reset}%(#.#.$) '
             ;;
     esac
 }

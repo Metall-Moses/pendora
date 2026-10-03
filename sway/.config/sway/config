@@ -40,10 +40,11 @@ input type:touchpad {
 }
 # mouse_refocus = false → don't warp cursor on focus
 mouse_warping none
-# kb_layout = "se"
+# Keyboard layout: defaults to GNOME/system detected layout, with US fallback
 input type:keyboard {
-    xkb_layout se
+    xkb_layout us
 }
+include ~/.config/sway/config.d/*.conf
 
 #-----------------------
 #---- LOOK AND FEEL ----
@@ -62,10 +63,9 @@ client.focused          #58E1FF #285577 #ffffff #51A2DA #58E1FF
 client.unfocused        #182d4d #222222 #888888 #292d2e #182d4d
 client.focused_inactive #182d4d #5f676a #ffffff #484e50 #182d4d
 
-# active_opacity = 1.0 (sway uses per-app opacity rules; 1.0 is the default)
-# inactive_opacity = 0.9
-for_window [class=".*"] opacity 0.9
-for_window [app_id=".*"] opacity 0.9
+# Window opacity is managed dynamically via inactive-windows-transparency daemon:
+# Active/focused window = 1.0 (solid, background does not shine through)
+# Inactive/unfocused window = 0.88 (translucent)
 
 # shadow / blur: stock sway has no support; enable if using swayfx:
 # corner_radius 10
@@ -80,6 +80,8 @@ for_window [app_id=".*"] opacity 0.9
 exec noctalia
 exec wl-paste --type text  --watch cliphist store
 exec wl-paste --type image --watch cliphist store
+exec_always python3 ~/.config/sway/scripts/inactive-windows-transparency.py --focused 1.0 --opacity 0.88
+exec_always ~/.config/sway/scripts/apply-gnome-keyboard-layout.sh
 
 #---------------------
 #---- KEYBINDINGS ----
