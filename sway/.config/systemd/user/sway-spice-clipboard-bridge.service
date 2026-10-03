@@ -1,0 +1,18 @@
+[Unit]
+Description=Bridge Sway (Wayland) clipboard to spice-vdagent for SPICE host/guest copy-paste
+Documentation=https://github.com/sec-moose/pendora
+
+# Only activate inside a SPICE virtual machine (skipped silently on bare metal or non-SPICE)
+ConditionPathExists=/run/spice-vdagentd/spice-vdagent-sock
+
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.config/sway/scripts/sway-spice-clipboard-bridge
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=sway-session.target

@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""
+sway-spice-clipboard-bridge - Bidirectional SPICE Host <-> Sway Guest Clipboard Bridge.
+
+Bypasses wlroots Xwayland window-focus gating by managing the X11 CLIPBOARD selection
+as a GTK client while relaying changes to/from Wayland via wl-paste and wl-copy.
+Automatically active in QEMU/KVM SPICE guests.
+"""
+
+import os
+import signal
+import subprocess
+import sys
+import threading
+
+os.environ.setdefault("GDK_BACKEND", "x11")
+# GTK must connect to Xwayland, but wl-copy/wl-paste need the Wayland socket
+WL_ENV = dict(os.environ)
+os.environ.pop("WAYLAND_DISPLAY", None)
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GLib, Gtk
+
+TEXT_MIME = "text/plain;charset=utf-8"
+DISPLAY = os.environ.get("DISPLAY", ":0")
+SAFETY_NET_MS = 10000
+
+last_text = None
+busy = False
+watcher = None
+
+
+def log(msg):
+    print(f"[spice-clipboard-bridge] {msg}", flush=True)
+
+
+def wl_copy(text):
+    try:
+        subprocess.run(
+            ["wl-copy", "--type", TEXT_MIME, "--", text],
+            timeout=5,
+            check=False,
+            env=WL_ENV,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+
+def adopt_from_wayland(text):
+    """Wayland clipboard changed -> serve it on X11 so spice-vdagent can read it."""
+    global last_text
+    if not text or text == last_text:
+        return
+    last_text = text
+    clipboard.set_text(text, -1)
+
+
+def adopt_once(text):
+    adopt_from_wayland(text)
+    return GLib.SOURCE_REMOVE
+
+
+def reconcile():
+    """Inspect X11 selection and repair ownership when unreadable."""
+    global last_text, busy
+    if busy:
+        return True
+    busy = True
+    try:
+        xtext = clipboard.wait_for_text()
+        if xtext is None:
+            if last_text is not None:
+                clipboard.set_text(last_text, -1)
+        elif xtext != last_text:
+            last_text = xtext
+            wl_copy(xtext)
+    finally:
+        busy = False
+    return True
+
+
+def reconcile_once():
+    reconcile()
+    return GLib.SOURCE_REMOVE
+
+
+def on_owner_change(_clipboard, _event):
+    GLib.idle_add(reconcile_once)
+
+
+def watch_wayland():
+    """Run `wl-paste --watch`, delivering each new clipboard value on stdout."""
+    global watcher
+    try:
+        watcher = subprocess.Popen(
+            ["wl-paste", "--watch", "sh", "-c", "base64 -w0; echo"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env=WL_ENV,
+        )
+        import base64
+
+        for line in watcher.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                text = base64.b64decode(line).decode("utf-8")
+            except Exception:
+                continue
+            GLib.idle_add(adopt_once, text)
+    except Exception as e:
+        log(f"wl-paste watcher error: {e}")
+
+
+def shutdown(*_a):
+    if watcher and watcher.poll() is None:
+        watcher.terminate()
+    Gtk.main_quit()
+
+
+display = Gdk.Display.open(DISPLAY)
+if display is None:
+    log(f"FATAL: cannot open X display {DISPLAY} (is Xwayland running?)")
+    sys.exit(1)
+
+clipboard = Gtk.Clipboard.get_for_display(display, Gdk.SELECTION_CLIPBOARD)
+
+signal.signal(signal.SIGTERM, shutdown)
+signal.signal(signal.SIGINT, shutdown)
+
+clipboard.connect("owner-change", on_owner_change)
+threading.Thread(target=watch_wayland, daemon=True).start()
+GLib.timeout_add(SAFETY_NET_MS, reconcile)
+log(f"Started on DISPLAY={DISPLAY}")
+Gtk.main()

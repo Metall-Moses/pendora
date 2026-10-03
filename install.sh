@@ -453,6 +453,7 @@ configure_screensharing_systemd() {
         echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/systemd/user"
         echo "  [DRY-RUN] Write /home/\$USER/.config/systemd/user/sway-session.target"
         echo "  [DRY-RUN] systemctl --user daemon-reload"
+        echo "  [DRY-RUN] systemctl --user enable --now sway-spice-clipboard-bridge.service"
         echo "  [DRY-RUN] systemctl --user start sway-session.target xdg-desktop-portal xdg-desktop-portal-wlr"
     else
         mkdir -p "$target_dir"
@@ -470,10 +471,12 @@ EOF
         log_success "Created $target_file"
 
         systemctl --user daemon-reload 2>/dev/null || true
+        systemctl --user enable sway-spice-clipboard-bridge.service 2>/dev/null || true
         systemctl --user start sway-session.target 2>/dev/null || true
         systemctl --user start xdg-desktop-portal 2>/dev/null || true
         systemctl --user start xdg-desktop-portal-wlr 2>/dev/null || true
-        log_success "Sway screensharing user target configured."
+        systemctl --user start sway-spice-clipboard-bridge.service 2>/dev/null || true
+        log_success "Sway screensharing and SPICE clipboard bridge services configured."
     fi
 }
 

@@ -21,6 +21,11 @@ rofi                        # Window switcher and application runner
 grim                        # Screenshot utility for Wayland / wlroots
 slurp                       # Region selection tool for Wayland (used by grim)
 nautilus                    # GNOME file manager
-
 # --- Dynamic Window Opacity & IPC ---
 python3-i3ipc               # Python IPC library for Sway focus-based opacity daemon
+
+# --- SPICE VM Clipboard Integration & Xwayland ---
+xorg-x11-server-Xwayland    # Xwayland server enabling X11 compatibility in Sway
+spice-vdagent               # SPICE guest agent daemon for QEMU/KVM virtual machines
+python3-gobject             # Python GObject introspection for GTK clipboard bridge
+gtk3                        # GTK3 toolkit library used by SPICE clipboard bridge
