@@ -11,7 +11,7 @@ exec sleep 1 && /usr/libexec/xdg-desktop-portal-gtk
 #-----------------
 #---- MONITOR ----
 #-----------------
-output * resolution 1920x1080 position 0,0
+# Dynamic resolution auto-detection (enables seamless VM window resizing and native display scaling)
 output * bg /usr/share/backgrounds/pendora/wallpaper.svg fill
 
 #------------------

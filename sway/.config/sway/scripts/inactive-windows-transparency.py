@@ -1,142 +1,102 @@
 #!/usr/bin/env python3
 """
-inactive-windows-transparency.py - Dynamic window opacity controller for Sway
-Sets focused (active) window to solid opacity (default 1.0) so wallpaper
-does not shine through, while maintaining subtle transparency on inactive windows.
-Supports both i3ipc and pure Python standard library socket fallback.
+inactive-windows-transparency.py - Dynamic window opacity controller for Sway.
+Keeps the active (focused) window completely solid (default: 1.0) so wallpapers
+and background windows do not shine through, and dims inactive windows (default: 0.88).
+
+Uses native swaymsg IPC for 100% reliability and zero third-party dependencies.
 """
 
 import argparse
+import fcntl
 import json
 import os
 import signal
-import socket
-import struct
+import subprocess
 import sys
+import time
 
 
-def run_i3ipc(args):
-    import i3ipc
+def get_window_tree():
+    try:
+        out = subprocess.check_output(
+            ["swaymsg", "-t", "get_tree"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        return json.loads(out)
+    except Exception:
+        return None
 
-    ipc = i3ipc.Connection()
-    focused_set = set()
 
-    for window in ipc.get_tree():
-        if window.focused:
-            focused_set.add(window.id)
-            window.command(f"opacity {args.focused}")
-        else:
-            window.command(f"opacity {args.opacity}")
+def extract_client_windows(node):
+    windows = []
+    # In Sway's layout tree, client application windows are leaf nodes
+    # of type 'con' or 'floating_con' that have no child nodes.
+    if node.get("type") in ("con", "floating_con"):
+        has_children = bool(node.get("nodes") or node.get("floating_nodes"))
+        if not has_children:
+            name = node.get("name") or ""
+            # Exclude internal sway containers / bars
+            if not name.startswith("__i3"):
+                windows.append((node.get("id"), bool(node.get("focused"))))
 
-    def on_window(ipc_conn, event):
-        nonlocal focused_set
-        tree = ipc_conn.get_tree()
-        focused = tree.find_focused()
-        if focused is None:
-            return
+    for child in node.get("nodes", []):
+        windows.extend(extract_client_windows(child))
+    for child in node.get("floating_nodes", []):
+        windows.extend(extract_client_windows(child))
 
-        focused.command(f"opacity {args.focused}")
-        focused_set.add(focused.id)
+    return windows
 
-        to_remove = set()
-        for wid in focused_set:
-            if wid == focused.id:
-                continue
-            w = tree.find_by_id(wid)
-            if w is None:
-                to_remove.add(wid)
-            else:
-                w.command(f"opacity {args.opacity}")
-                to_remove.add(wid)
-        focused_set -= to_remove
 
-    def on_exit(sig, frame):
+def apply_opacities(focused_op, inactive_op):
+    tree = get_window_tree()
+    if not tree:
+        return
+
+    windows = extract_client_windows(tree)
+    if not windows:
+        return
+
+    commands = []
+    for wid, is_focused in windows:
+        if wid is None:
+            continue
+        op = focused_op if is_focused else inactive_op
+        commands.append(f"[con_id={wid}] opacity {op}")
+
+    if commands:
+        cmd_str = "; ".join(commands)
         try:
-            for w in ipc.get_tree().leaves():
-                w.command(f"opacity {args.focused}")
+            subprocess.run(
+                ["swaymsg", cmd_str],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except Exception:
             pass
-        sys.exit(0)
-
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        signal.signal(sig, on_exit)
-
-    ipc.on("window::focus", on_window)
-    ipc.main()
 
 
-def run_socket_fallback(args):
-    sock_path = os.environ.get("SWAYSOCK") or os.environ.get("I3SOCK")
-    if not sock_path or not os.path.exists(sock_path):
-        sys.exit(1)
-
-    MAGIC = b"i3-ipc"
-
-    def send_cmd(s, cmd_str):
-        payload = cmd_str.encode("utf-8")
-        header = struct.pack("=6sII", MAGIC, len(payload), 0)  # IPC_COMMAND = 0
-        s.sendall(header + payload)
-        # Read response
-        resp_hdr = s.recv(14)
-        if len(resp_hdr) == 14:
-            _, rlen, _ = struct.unpack("=6sII", resp_hdr)
-            s.recv(rlen)
-
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(sock_path)
-
-    # Initial command: set all to unfocused opacity
-    send_cmd(s, f'[app_id=".*"] opacity {args.opacity}; [class=".*"] opacity {args.opacity}')
-
-    # Subscribe to window events
-    sub_payload = json.dumps(["window"]).encode("utf-8")
-    sub_header = struct.pack("=6sII", MAGIC, len(sub_payload), 2)  # IPC_SUBSCRIBE = 2
-    s.sendall(sub_header + sub_payload)
-    resp_hdr = s.recv(14)
-    if len(resp_hdr) == 14:
-        _, rlen, _ = struct.unpack("=6sII", resp_hdr)
-        s.recv(rlen)
-
-    prev_focused_id = None
-
-    while True:
+def restore_all(focused_op):
+    tree = get_window_tree()
+    if not tree:
+        return
+    windows = extract_client_windows(tree)
+    commands = [f"[con_id={wid}] opacity {focused_op}" for wid, _ in windows if wid]
+    if commands:
         try:
-            hdr = s.recv(14)
-            if len(hdr) < 14:
-                break
-            _, length, mtype = struct.unpack("=6sII", hdr)
-            data = b""
-            while len(data) < length:
-                chunk = s.recv(length - len(data))
-                if not chunk:
-                    break
-                data += chunk
-
-            if mtype & (1 << 31):  # Event
-                try:
-                    event = json.loads(data.decode("utf-8"))
-                    if event.get("change") == "focus":
-                        con = event.get("container", {})
-                        cid = con.get("id")
-                        if cid:
-                            cmd = f"[con_id={cid}] opacity {args.focused}"
-                            if prev_focused_id and prev_focused_id != cid:
-                                cmd += f"; [con_id={prev_focused_id}] opacity {args.opacity}"
-                            prev_focused_id = cid
-                            # Send command on separate connection to avoid stream interleaving
-                            cs = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                            cs.connect(sock_path)
-                            send_cmd(cs, cmd)
-                            cs.close()
-                except Exception:
-                    pass
+            subprocess.run(
+                ["swaymsg", "; ".join(commands)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except Exception:
-            break
+            pass
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Set active window to solid opacity and inactive windows to translucent."
+        description="Dynamic active/inactive window opacity manager for Sway."
     )
     parser.add_argument(
         "--focused",
@@ -154,10 +114,53 @@ def main():
     )
     args = parser.parse_args()
 
+    # Singleton file lock: prevent duplicate processes on Sway reload
+    lock_path = f"/tmp/sway-inactive-transparency-{os.getuid()}.lock"
     try:
-        run_i3ipc(args)
-    except ImportError:
-        run_socket_fallback(args)
+        lock_file = open(lock_path, "w")
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (BlockingIOError, OSError):
+        # Another instance is already actively running
+        sys.exit(0)
+
+    # Clean exit signal handlers
+    def handle_signal(sig, frame):
+        restore_all(args.focused)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    # Initial pass: configure all currently open windows immediately
+    apply_opacities(args.focused, args.opacity)
+
+    # Subscribe to Sway window events (focus, new, close, move, etc.)
+    while True:
+        try:
+            sub_proc = subprocess.Popen(
+                ["swaymsg", "-t", "subscribe", "-m", '["window"]'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1,
+            )
+
+            for line in sub_proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                    change = event.get("change")
+                    # Window focus, creation, destruction, or layout shift
+                    if change in ("focus", "new", "close", "move", "floating"):
+                        apply_opacities(args.focused, args.opacity)
+                except Exception:
+                    pass
+
+            sub_proc.wait()
+        except Exception:
+            time.sleep(1)
 
 
 if __name__ == "__main__":
