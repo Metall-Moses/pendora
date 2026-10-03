@@ -320,41 +320,111 @@ run_containers_install() {
     "$UPSTREAMS_SCRIPT" "${upstream_args[@]}"
 }
 
-deploy_zsh_config() {
-    echo
-    echo -e "${BOLD}Deploying Kali-styled Zsh Configuration${NC}"
-    echo "===================================================="
-    local src_zsh="${SCRIPT_DIR}/zsh/.zshrc"
+stow_module() {
+    local module="$1"
+    local module_dir="${SCRIPT_DIR}/${module}"
     local target_user="${SUDO_USER:-$USER}"
     local target_home
     target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
     [ -z "$target_home" ] && target_home="$HOME"
-    local dest_zsh="${target_home}/.zshrc"
 
-    if [ ! -f "$src_zsh" ]; then
-        log_error "Source zsh config not found: $src_zsh"
-        return 1
+    if [ ! -d "$module_dir" ]; then
+        log_warn "Module directory '$module' not found in $SCRIPT_DIR, skipping."
+        return 0
     fi
 
     if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] cp \${SCRIPT_DIR}/zsh/.zshrc to /home/\$USER/.zshrc (with backup if existing)"
+        echo "  [DRY-RUN] stow -d '$SCRIPT_DIR' -t '$target_home' -R '$module'"
+        return 0
+    fi
+
+    # Ensure GNU Stow is installed
+    if ! command -v stow &>/dev/null; then
+        log_info "stow command not found. Installing stow via dnf..."
+        sudo dnf install -y stow || true
+    fi
+
+    log_info "Applying ${BOLD}${module}${NC} dotfiles via GNU Stow into $target_home..."
+    mkdir -p "$target_home/.config"
+
+    # Back up existing non-symlink targets to prevent Stow conflicts
+    case "$module" in
+        zsh)
+            if [ -f "$target_home/.zshrc" ] && [ ! -L "$target_home/.zshrc" ]; then
+                local zsh_bak="$target_home/.zshrc.bak.$(date +%Y%m%d_%H%M%S)"
+                log_info "Existing regular .zshrc found. Backing up to $zsh_bak"
+                mv "$target_home/.zshrc" "$zsh_bak"
+            fi
+            ;;
+        hyprland)
+            for d in hypr noctalia; do
+                if [ -d "$target_home/.config/$d" ] && [ ! -L "$target_home/.config/$d" ]; then
+                    local d_bak="$target_home/.config/${d}.bak.$(date +%Y%m%d_%H%M%S)"
+                    log_info "Existing non-symlink directory $target_home/.config/$d found. Backing up to $d_bak"
+                    mv "$target_home/.config/$d" "$d_bak"
+                fi
+            done
+            ;;
+        alacritty)
+            if [ -d "$target_home/.config/alacritty" ] && [ ! -L "$target_home/.config/alacritty" ]; then
+                local a_bak="$target_home/.config/alacritty.bak.$(date +%Y%m%d_%H%M%S)"
+                log_info "Existing non-symlink directory $target_home/.config/alacritty found. Backing up to $a_bak"
+                mv "$target_home/.config/alacritty" "$a_bak"
+            fi
+            ;;
+        nvim)
+            if [ -d "$target_home/.config/nvim" ] && [ ! -L "$target_home/.config/nvim" ]; then
+                local n_bak="$target_home/.config/nvim.bak.$(date +%Y%m%d_%H%M%S)"
+                log_info "Existing non-symlink directory $target_home/.config/nvim found. Backing up to $n_bak"
+                mv "$target_home/.config/nvim" "$n_bak"
+            fi
+            ;;
+    esac
+
+    # Execute stow as the target user to ensure proper symlink ownership
+    if [ -n "${SUDO_USER:-}" ] && [ "$EUID" -eq 0 ]; then
+        sudo -u "$target_user" stow -d "$SCRIPT_DIR" -t "$target_home" -R "$module" 2>/dev/null || \
+        sudo -u "$target_user" stow -d "$SCRIPT_DIR" -t "$target_home" --adopt "$module" 2>/dev/null || true
+    else
+        stow -d "$SCRIPT_DIR" -t "$target_home" -R "$module" 2>/dev/null || \
+        stow -d "$SCRIPT_DIR" -t "$target_home" --adopt "$module" 2>/dev/null || true
+    fi
+    log_success "Stowed module '${module}' successfully (symlinks in $target_home)."
+}
+
+ensure_hack_nerd_font() {
+    local font_dir="/usr/local/share/fonts/HackNerdFont"
+    if [ ! -d "$font_dir" ] || [ -z "$(ls -A "$font_dir" 2>/dev/null)" ]; then
+        if [ "$DRY_RUN" = true ]; then
+            echo "  [DRY-RUN] Install Hack Nerd Font to $font_dir"
+            return 0
+        fi
+        log_info "Hack Nerd Font not found. Installing from upstream release..."
+        local font_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.tar.xz"
+        sudo mkdir -p "$font_dir"
+        curl -fsSL "$font_url" | sudo tar -xJ -C "$font_dir" 2>/dev/null || true
+        sudo fc-cache -f 2>/dev/null || true
+        log_success "Hack Nerd Font installed to $font_dir"
+    fi
+}
+
+deploy_zsh_config() {
+    echo
+    echo -e "${BOLD}Deploying Kali-styled Zsh Configuration (GNU Stow)${NC}"
+    echo "===================================================="
+    local target_user="${SUDO_USER:-$USER}"
+
+    ensure_hack_nerd_font
+
+    if ! command -v zsh &>/dev/null && [ "$DRY_RUN" = false ]; then
+        log_info "zsh not found. Installing zsh packages via dnf..."
+        sudo dnf install -y zsh zsh-autosuggestions zsh-syntax-highlighting || true
+    fi
+
+    stow_module "zsh"
+    if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] sudo usermod -s \$(which zsh) \$USER"
     else
-        if ! command -v zsh &>/dev/null; then
-            log_info "zsh not found. Installing zsh packages via dnf..."
-            sudo dnf install -y zsh zsh-autosuggestions zsh-syntax-highlighting || true
-        fi
-        if [ -f "$dest_zsh" ]; then
-            local backup="${dest_zsh}.bak.$(date +%Y%m%d_%H%M%S)"
-            log_info "Existing .zshrc found. Backing up to: $backup"
-            cp "$dest_zsh" "$backup"
-        fi
-        cp "$src_zsh" "$dest_zsh"
-        if [ -n "${SUDO_USER:-}" ]; then
-            chown "${target_user}:${target_user}" "$dest_zsh"
-        fi
-        log_success "Deployed Kali .zshrc to $dest_zsh"
-
         if command -v zsh &>/dev/null; then
             local zsh_bin
             zsh_bin="$(which zsh)"
@@ -423,115 +493,37 @@ EOF
 
 deploy_hyprland_config() {
     echo
-    echo -e "${BOLD}Deploying Hyprland Desktop & Noctalia Shell Configuration${NC}"
+    echo -e "${BOLD}Deploying Hyprland & Noctalia Configuration (GNU Stow)${NC}"
     echo "===================================================="
-    local src_hypr="${SCRIPT_DIR}/hyprland/.config/hypr"
-    local src_noctalia="${SCRIPT_DIR}/hyprland/.config/noctalia"
-    local target_user="${SUDO_USER:-$USER}"
-    local target_home
-    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
-    [ -z "$target_home" ] && target_home="$HOME"
-    local dest_hypr="${target_home}/.config/hypr"
-    local dest_noctalia="${target_home}/.config/noctalia"
-
-    if [ ! -d "$src_hypr" ]; then
-        log_warn "Hyprland source directory not found: $src_hypr"
-        return 0
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/hypr /home/\$USER/.config/noctalia"
-        echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/hyprland/.config/hypr/* to /home/\$USER/.config/hypr/"
-        echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/hyprland/.config/noctalia/* to /home/\$USER/.config/noctalia/"
-        echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER hyprland')"
-    else
-        mkdir -p "$dest_hypr"
-        cp -r "$src_hypr"/* "$dest_hypr"/
-        if [ -f "$src_hypr/.luarc.json" ]; then
-            cp "$src_hypr/.luarc.json" "$dest_hypr"/
-        fi
-
-        # Deploy Noctalia shell configuration & Pendora palette
-        if [ -d "$src_noctalia" ]; then
-            mkdir -p "$dest_noctalia"
-            cp -r "$src_noctalia"/* "$dest_noctalia"/
-        fi
-
-        if [ -n "${SUDO_USER:-}" ]; then
-            chown -R "${target_user}:${target_user}" "$dest_hypr" "$dest_noctalia" 2>/dev/null || true
-        fi
-        log_success "Deployed Hyprland and Noctalia configuration to $target_home/.config/"
-    fi
+    ensure_hack_nerd_font
+    stow_module "hyprland"
 }
+
 deploy_alacritty_config() {
     echo
-    echo -e "${BOLD}Deploying Alacritty & Catppuccin Macchiato Theme${NC}"
+    echo -e "${BOLD}Deploying Alacritty Configuration (GNU Stow)${NC}"
     echo "===================================================="
-    local src_alacritty="${SCRIPT_DIR}/alacritty/.config/alacritty"
-    local target_user="${SUDO_USER:-$USER}"
-    local target_home
-    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
-    [ -z "$target_home" ] && target_home="$HOME"
-    local dest_alacritty="${target_home}/.config/alacritty"
-
-    if [ ! -d "$src_alacritty" ]; then
-        log_warn "Alacritty source directory not found: $src_alacritty"
-        return 0
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/alacritty"
-        echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/alacritty/.config/alacritty/* to /home/\$USER/.config/alacritty/"
-        echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER alacritty')"
-    else
+    ensure_hack_nerd_font
+    if [ "$DRY_RUN" = false ]; then
         if ! command -v alacritty &>/dev/null; then
             log_info "alacritty not found. Installing alacritty via dnf..."
             sudo dnf install -y alacritty || true
         fi
-        mkdir -p "$dest_alacritty"
-        cp -r "$src_alacritty"/* "$dest_alacritty"/
-        if [ -n "${SUDO_USER:-}" ]; then
-            chown -R "${target_user}:${target_user}" "$dest_alacritty"
-        fi
-        log_success "Deployed Alacritty configuration & Catppuccin Macchiato theme to $dest_alacritty"
     fi
+    stow_module "alacritty"
 }
+
 deploy_nvim_config() {
     echo
-    echo -e "${BOLD}Deploying Neovim, LazyVim & Catppuccin Macchiato Theme${NC}"
+    echo -e "${BOLD}Deploying Neovim / LazyVim Configuration (GNU Stow)${NC}"
     echo "===================================================="
-    local src_nvim="${SCRIPT_DIR}/nvim/.config/nvim"
-    local target_user="${SUDO_USER:-$USER}"
-    local target_home
-    target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
-    [ -z "$target_home" ] && target_home="$HOME"
-    local dest_nvim="${target_home}/.config/nvim"
-
-    if [ ! -d "$src_nvim" ]; then
-        log_warn "Neovim source directory not found: $src_nvim"
-        return 0
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/nvim"
-        echo "  [DRY-RUN] cp -r \${SCRIPT_DIR}/nvim/.config/nvim/* to /home/\$USER/.config/nvim/"
-        echo "  [DRY-RUN] (or deploy via 'stow -d \${SCRIPT_DIR} -t /home/\$USER nvim')"
-    else
+    if [ "$DRY_RUN" = false ]; then
         if ! command -v nvim &>/dev/null; then
             log_info "neovim not found. Installing neovim via dnf..."
             sudo dnf install -y neovim || true
         fi
-        mkdir -p "$dest_nvim"
-        cp -r "$src_nvim"/* "$dest_nvim"/
-        # Copy hidden files (.neoconf.json, stylua.toml, etc.)
-        for dotf in "$src_nvim"/.*; do
-            [ -f "$dotf" ] && cp "$dotf" "$dest_nvim"/
-        done
-        if [ -n "${SUDO_USER:-}" ]; then
-            chown -R "${target_user}:${target_user}" "$dest_nvim"
-        fi
-        log_success "Deployed Neovim & LazyVim Catppuccin configuration to $dest_nvim"
     fi
+    stow_module "nvim"
 }
 deploy_wallpaper() {
     echo

@@ -11,10 +11,7 @@ end)
 ---- MONITOR ----
 -----------------
 hl.monitor({
-	output = "auto",
-	mode = "auto",
-	position = "0x0",
-	scale = 1,
+	output = "Virtual-1",
 })
 
 ------------------
@@ -142,15 +139,15 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(ipc .. " brightness-down"))
 ------------------------------
 ---- PERSISTENT WORKSPACES ----
 ------------------------------
-hl.workspace_rule({ workspace = "1", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "2", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "3", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "4", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "5", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "6", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "7", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "8", monitor = "auto", default = true, persistent = true })
-hl.workspace_rule({ workspace = "9", monitor = "auto", default = true, persistent = true })
+hl.workspace_rule({ workspace = "1", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "2", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "3", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "4", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "5", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "6", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "7", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "8", monitor = "Virtual-1", default = true, persistent = true })
+hl.workspace_rule({ workspace = "9", monitor = "Virtual-1", default = true, persistent = true })
 
 -------------------------------
 ---- NOCTALIA SURFACE BLUR ----

@@ -10,9 +10,9 @@
 
 # --- Wayland Compositor & Screensharing Portals ---
 hyprland                    # Dynamic tiling Wayland compositor
+hyprland-guiutils           # GUI dialogs, error popups & helper tools for Hyprland
 xdg-desktop-portal-hyprland # Desktop portal backend for Hyprland screensharing
 xdg-desktop-portal-gtk      # GTK desktop portal fallback
-
 # --- Desktop Shell & UI Components ---
 noctalia                    # Wayland desktop shell (bar, launcher, control center)
 rofi                        # Window switcher and application runner
