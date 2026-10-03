@@ -32,17 +32,36 @@ is_spice = (
 if not is_spice:
     sys.exit(0)
 
-os.environ.setdefault("GDK_BACKEND", "x11")
+# 1. Locate WAYLAND_DISPLAY if not set in environment (e.g. under systemd --user)
+if "WAYLAND_DISPLAY" not in os.environ:
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    wl_socks = sorted(glob.glob(f"{runtime_dir}/wayland-[0-9]*"))
+    if wl_socks:
+        os.environ["WAYLAND_DISPLAY"] = os.path.basename(wl_socks[0])
 
 # Clean environment copy for Wayland subcommands (wl-copy, wl-paste)
 WL_ENV = dict(os.environ)
-os.environ.pop("WAYLAND_DISPLAY", None)
 
-# Locate WAYLAND_DISPLAY if not set in environment (e.g. under systemd --user)
-if "WAYLAND_DISPLAY" not in WL_ENV:
-    wl_socks = glob.glob(f"/run/user/{os.getuid()}/wayland-[0-9]*")
-    if wl_socks:
-        WL_ENV["WAYLAND_DISPLAY"] = os.path.basename(wl_socks[0])
+# 2. Wait for Xwayland socket in /tmp/.X11-unix/X* BEFORE importing GTK
+target_disp = os.environ.get("DISPLAY")
+for _ in range(60):
+    if target_disp and os.path.exists(f"/tmp/.X11-unix/X{target_disp.lstrip(':')}"):
+        break
+    x_socks = sorted(glob.glob("/tmp/.X11-unix/X[0-9]*"))
+    if x_socks:
+        target_disp = ":" + os.path.basename(x_socks[-1])[1:]
+        break
+    time.sleep(0.5)
+
+if not target_disp:
+    print("[spice-clipboard-bridge] No Xwayland display found after 30s. Exiting.", flush=True)
+    sys.exit(1)
+
+# Set DISPLAY and GDK_BACKEND in os.environ BEFORE importing GTK
+os.environ["DISPLAY"] = target_disp
+os.environ["GDK_BACKEND"] = "x11"
+# Ensure GTK doesn't attempt to use Wayland backend
+os.environ.pop("WAYLAND_DISPLAY", None)
 
 import gi
 
@@ -146,28 +165,9 @@ def shutdown(*_a):
     Gtk.main_quit()
 
 
-# Retry loop to connect to Xwayland (up to 30s)
-display = None
-for attempt in range(60):
-    target_disp = os.environ.get("DISPLAY")
-    if not target_disp:
-        x_socks = sorted(glob.glob("/tmp/.X11-unix/X[0-9]*"))
-        if x_socks:
-            target_disp = ":" + os.path.basename(x_socks[-1])[1:]
-            os.environ["DISPLAY"] = target_disp
-
-    if target_disp:
-        try:
-            display = Gdk.Display.open(target_disp)
-            if display is not None:
-                break
-        except Exception:
-            pass
-
-    time.sleep(0.5)
-
+display = Gdk.Display.open(target_disp)
 if display is None:
-    log("Could not open Xwayland display after 30s. Exiting.")
+    log(f"Could not open Xwayland display {target_disp}. Exiting.")
     sys.exit(1)
 
 clipboard = Gtk.Clipboard.get_for_display(display, Gdk.SELECTION_CLIPBOARD)
@@ -178,5 +178,5 @@ signal.signal(signal.SIGINT, shutdown)
 clipboard.connect("owner-change", on_owner_change)
 threading.Thread(target=watch_wayland, daemon=True).start()
 GLib.timeout_add(SAFETY_NET_MS, reconcile)
-log(f"Started on DISPLAY={os.environ.get('DISPLAY')}")
+log(f"Started on DISPLAY={target_disp}")
 Gtk.main()
