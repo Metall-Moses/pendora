@@ -165,7 +165,7 @@ All files in `pkg-lists/` and `pipx-lists/` are structured for manual editing. T
   ```text
   # masscan                     # Ultra-fast TCP port scanner
   ```
-* **To remove a tool permanently**: Delete the line from the file.
+* **To remove a tool permanently from the list**: Delete the line from the file. (This will not uninstall the tool if it is already installed.)
 * **To add a new package**: Add the package name on a new line (inline comments optional):
   ```text
   cifs-utils                    # SMB/CIFS filesystem mount utilities
