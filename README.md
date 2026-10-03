@@ -7,7 +7,11 @@
 [![QEMU/KVM](https://img.shields.io/badge/QEMU%2FKVM-FF6600?style=flat-square&logo=qemu&logoColor=white)](https://www.qemu.org/)
 [![Kali Tools](https://img.shields.io/badge/Kali%20Tools-557C94?style=flat-square&logo=kalilinux&logoColor=white)](https://www.kali.org/tools/)
 [![Sway](https://img.shields.io/badge/Sway-000000?style=flat-square&logo=sway&logoColor=white)](https://swaywm.org/)
+[![Status](https://img.shields.io/badge/Status-Beta-orange?style=flat-square)](https://github.com/sec-moose/pendora)
 [![Repo Size](https://img.shields.io/github/repo-size/sec-moose/pendora?style=flat-square)](https://github.com/sec-moose/pendora)
+
+> 🚀 **Project Status: Beta Stage**  
+> Pendora has officially advanced to **Beta**. Core deployment profiles (Basic GNOME Pentest, Sway Dynamic Desktop, and Full End-to-End Installation) have been verified on Fedora Workstation VMs. Continuous testing is actively underway to further test tools, upstream suites, container interactions, and virtualization environments.
 
 > ⚠️ **Disclaimer & Notice**  
 > * **AI-Assisted Development**: Artificial intelligence (AI) has been utilized for parts of this project, including code generation, deployment scripts, configuration templates, and documentation.  
@@ -48,16 +52,23 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 Pendora provides full flexibility over your graphical environment. You can choose whether you want a headless/GNOME-compatible pentest environment or the full dynamic tiling desktop experience:
 
 > 💡 **Testing Status & Recommendations:**  
+> * **Tested & Verified — Full Installation (`./install.sh --all` / `--all --yes`)**: End-to-end single-pass deployment verifying all native security packages (00–70), Pipx tools, Upstream suites, Docker containers, and the Sway tiling desktop environment.
+> * **Tested & Verified — Sway Dynamic Desktop (`./install.sh --sway`)**: Standalone deployment of the lightweight Sway tiling compositor, Noctalia desktop shell, Hack Nerd Font, focus-based window opacity, crisp 1080p display rendering, and automatic GNOME keyboard layout inheritance. 100% native Fedora RPMs (zero COPR repositories required).
 > * **Tested & Verified — Basic Pentest Setup (`./install.sh --basic`)**: Keeps your default Fedora GNOME desktop intact while deploying all pentest CLI tools, Pipx tools, Docker container suites, Zsh, Neovim, and Alacritty.
-> * **Tested & Verified — Sway Dynamic Desktop (`./install.sh --sway`)**: Deploys the lightweight Sway tiling compositor, Noctalia desktop shell, Hack Nerd Font, focus-based window opacity, crisp 1080p display rendering, and automatic GNOME keyboard layout inheritance. 100% native Fedora RPMs (no COPR required).
-> * **Active Testing / WIP — Full Installation (`./install.sh --all`)**: End-to-end single-pass execution combining both the entire pentest tool stack and the Sway desktop environment. This comprehensive transaction is currently undergoing active testing.
 
 | Mode | Flag | Validation Status | Included Components |
 |---|---|---|---|
+| **Full Desktop** | `--all` (`-a`) | **Tested & Verified** | Single-pass combination of everything in Basic **plus** Sway desktop stack (`70-sway.list`, Sway/Noctalia dotfiles, screensharing portal services). |
 | **Sway Desktop** | `--sway` (`-W`) | **Tested & Verified** | Installs `70-sway.list`, sets up screensharing user unit, deploys Sway & Noctalia configuration (Pendora theme), focus opacity daemon, GNOME keyboard auto-sync, Zsh, Neovim, Alacritty, and custom wallpapers. |
 | **Basic Pentest** | `--basic` (`-b`) | **Tested & Verified** | Retains existing GNOME desktop. Deploys all pentest packages (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty, Neovim/LazyVim, hostname, and wallpapers. **Zero desktop/window manager changes.** |
-| **Full Desktop** | `--all` (`-a`) | **Under Testing** | Single-pass combination of everything in Basic **plus** Sway desktop stack (`70-sway.list`, Sway/Noctalia dotfiles, screensharing portal services). |
+
 <p align="center">
+  <b>Sway Dynamic Tiling Desktop Environment (Noctalia Shell + Catppuccin Alacritty + Focus Opacity)</b><br/>
+  <img src="assets/Pendora-Sway.png" width="100%" alt="Pendora Sway Dynamic Tiling Penetration Testing Desktop Environment" />
+</p>
+
+<p align="center">
+  <b>Fedora GNOME Penetration Testing Desktop Environment (Basic Install)</b><br/>
   <img src="assets/Pendora-Gnome.png" width="100%" alt="Pendora GNOME Penetration Testing Desktop Environment" />
 </p>
 ---
@@ -133,9 +144,9 @@ pendora/
 
 ## Web Services & Dashboards
 
-| Service | Port / Protocol | Local URL | Description |
+| Service | Port / Protocol | Local URL | Status & Description |
 |---|---|---|---|
-| **Portainer CE** | `7999` (HTTPS) | `https://localhost:7999` | Lightweight Docker management web dashboard |
+| **Portainer CE** | `7999` (HTTPS) | `https://localhost:7999` | ⚠️ *Work in Progress* — Docker management web dashboard (deployment under investigation) |
 | **SysReptor** | `8000` (HTTP) | `http://localhost:8000` | Pentest reporting platform (uses official [SysReptor install script](https://docs.sysreptor.com/install.sh)) |
 | **BloodHound CE** | `8080` (HTTP) | `http://localhost:8080` | Active Directory attack path analysis & visualization |
 
@@ -246,8 +257,8 @@ Installs the complete penetration testing environment (all security packages 00-
 ./install.sh --basic --yes
 ```
 
-### 6. Full Installation (`--all` / `-a`) — Work in Progress
-> ⚠️ **Notice**: The full end-to-end installation (`--all`) combines all pentest tools, Docker containers, and the Sway desktop into a single run. This multi-stage deployment is currently under active testing.
+### 6. Full Installation (`--all` / `-a`) — Tested & Verified
+Installs the complete penetration testing toolkit (all native security packages 00–70, Pipx tools, Upstream suites, Docker containers) and configures the standalone Sway dynamic tiling desktop with the Noctalia shell, screensharing portal services, and dotfiles in a single automated pass:
 
 ```bash
 # Interactive run
@@ -269,4 +280,13 @@ To apply new group memberships and graphical session targets, simply reboot the 
 
 ```bash
 sudo reboot
+```
+
+---
+
+## Known Issues & Work in Progress
+
+* **Portainer Deployment (Under Investigation)**:  
+  The automated Portainer CE container deployment is currently not initializing properly during the upstream installation phase.  
+  > ℹ️ **Isolated Scope**: This issue is confined strictly to Portainer itself and **does not affect any other container stacks** (such as SysReptor or BloodHound CE), which build, initialize, and operate normally.
 ```
