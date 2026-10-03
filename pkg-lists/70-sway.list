@@ -1,0 +1,23 @@
+# ==============================================================================
+# 70-sway.list: Sway Wayland Tiling Compositor & Desktop Dependencies
+# ==============================================================================
+# Instructions:
+#  - Installed when using --sway, -W, or --all
+#  - Excluded when using --basic
+#  - 100% native official Fedora RPM packages (no COPR required)
+#  - Inline comments with '#' are fully supported
+# ==============================================================================
+
+# --- Wayland Tiling Compositor & Portals ---
+sway                        # i3-compatible Wayland tiling compositor
+xdg-desktop-portal-wlr      # Desktop portal backend for wlroots/sway screensharing
+xdg-desktop-portal-gtk      # GTK desktop portal fallback
+
+# --- Desktop Shell & UI Components ---
+noctalia                    # Wayland desktop shell (bar, launcher, control center)
+rofi                        # Window switcher and application runner
+
+# --- Screen Capture & Utilities ---
+grim                        # Screenshot utility for Wayland / wlroots
+slurp                       # Region selection tool for Wayland (used by grim)
+nautilus                    # GNOME file manager

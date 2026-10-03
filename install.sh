@@ -16,7 +16,7 @@ ASSUME_YES=""
 INSTALL_PIPX=false
 INSTALL_UPSTREAMS=false
 INSTALL_ZSH=false
-INSTALL_HYPRLAND=false
+INSTALL_SWAY=false
 INSTALL_ALACRITTY=false
 INSTALL_NVIM=false
 INSTALL_WALLPAPER=false
@@ -67,13 +67,13 @@ ${BOLD}Options:${NC}
   -u, --upstreams          Run standalone upstream installers (Metasploit, Burp, SecLists, etc.)
   -D, --docker, --containers Install Docker engine and deploy container stacks (Portainer, SysReptor, BloodHound)
   -z, --zsh                Deploy Kali-styled .zshrc configuration
-  -W, --hyprland           Install Hyprland desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
+  -W, --sway, --hyprland   Install Sway tiling desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
   -T, --alacritty          Deploy Alacritty terminal configuration & Catppuccin Macchiato theme
   -N, --nvim               Deploy Neovim/LazyVim configuration & Catppuccin Macchiato theme
   -H, --hostname           Set system hostname to 'pendora'
   -B, --wallpaper          Deploy and apply Pendora custom wallpaper
-  -b, --basic              Basic pentest setup without Hyprland (00-60 DNF + pipx + upstreams + zsh + alacritty + nvim + wallpaper)
-  -a, --all                Full setup including Hyprland desktop stack & wallpaper
+  -b, --basic              Basic pentest setup without Sway (00-60 DNF + pipx + upstreams + zsh + alacritty + nvim + wallpaper)
+  -a, --all                Full setup including Sway desktop stack & wallpaper
   --no-reboot              Do not reboot system after installation
 ${BOLD}Examples:${NC}
   $(basename "$0") --list
@@ -356,8 +356,8 @@ stow_module() {
                 mv "$target_home/.zshrc" "$zsh_bak"
             fi
             ;;
-        hyprland)
-            for d in hypr noctalia; do
+        sway|hyprland)
+            for d in sway hypr noctalia; do
                 if [ -d "$target_home/.config/$d" ] && [ ! -L "$target_home/.config/$d" ]; then
                     local d_bak="$target_home/.config/${d}.bak.$(date +%Y%m%d_%H%M%S)"
                     log_info "Existing non-symlink directory $target_home/.config/$d found. Backing up to $d_bak"
@@ -438,42 +438,27 @@ deploy_zsh_config() {
         fi
     fi
 }
-
-enable_hyprland_copr() {
-    log_info "Enabling Hyprland COPR repository (lionheartp/Hyprland)..."
-    if [ "$DRY_RUN" = true ]; then
-        echo "  [DRY-RUN] sudo dnf install -y dnf-plugins-core"
-        echo "  [DRY-RUN] sudo dnf copr enable -y lionheartp/Hyprland"
-    else
-        if ! rpm -q dnf-plugins-core &>/dev/null; then
-            log_info "Ensuring dnf-plugins-core is installed..."
-            sudo dnf install -y dnf-plugins-core || true
-        fi
-        sudo dnf copr enable -y lionheartp/Hyprland
-        log_success "Hyprland COPR repository enabled."
-    fi
-}
 configure_screensharing_systemd() {
     echo
-    echo -e "${BOLD}Configuring Hyprland Screensharing (Systemd User Target)${NC}"
+    echo -e "${BOLD}Configuring Sway Screensharing (Systemd User Target)${NC}"
     echo "===================================================="
     local target_user="${SUDO_USER:-$USER}"
     local target_home
     target_home="$(getent passwd "$target_user" 2>/dev/null | cut -d: -f6)"
     [ -z "$target_home" ] && target_home="$HOME"
     local target_dir="${target_home}/.config/systemd/user"
-    local target_file="${target_dir}/hyprland-session.target"
+    local target_file="${target_dir}/sway-session.target"
 
     if [ "$DRY_RUN" = true ]; then
         echo "  [DRY-RUN] mkdir -p /home/\$USER/.config/systemd/user"
-        echo "  [DRY-RUN] Write /home/\$USER/.config/systemd/user/hyprland-session.target"
+        echo "  [DRY-RUN] Write /home/\$USER/.config/systemd/user/sway-session.target"
         echo "  [DRY-RUN] systemctl --user daemon-reload"
-        echo "  [DRY-RUN] systemctl --user start hyprland-session.target xdg-desktop-portal"
+        echo "  [DRY-RUN] systemctl --user start sway-session.target xdg-desktop-portal xdg-desktop-portal-wlr"
     else
         mkdir -p "$target_dir"
         cat > "$target_file" <<'EOF'
 [Unit]
-Description=Hyprland session
+Description=Sway session
 BindsTo=graphical-session.target
 Wants=graphical-session-pre.target
 After=graphical-session-pre.target
@@ -485,18 +470,19 @@ EOF
         log_success "Created $target_file"
 
         systemctl --user daemon-reload 2>/dev/null || true
-        systemctl --user start hyprland-session.target 2>/dev/null || true
+        systemctl --user start sway-session.target 2>/dev/null || true
         systemctl --user start xdg-desktop-portal 2>/dev/null || true
-        log_success "Hyprland screensharing user target configured."
+        systemctl --user start xdg-desktop-portal-wlr 2>/dev/null || true
+        log_success "Sway screensharing user target configured."
     fi
 }
 
-deploy_hyprland_config() {
+deploy_sway_config() {
     echo
-    echo -e "${BOLD}Deploying Hyprland & Noctalia Configuration (GNU Stow)${NC}"
+    echo -e "${BOLD}Deploying Sway & Noctalia Configuration (GNU Stow)${NC}"
     echo "===================================================="
     ensure_hack_nerd_font
-    stow_module "hyprland"
+    stow_module "sway"
 }
 
 deploy_alacritty_config() {
@@ -754,11 +740,11 @@ while [[ $# -gt 0 ]]; do
             INSTALL_NVIM=true
             INSTALL_WALLPAPER=true
             SET_HOSTNAME=true
-            INSTALL_HYPRLAND=false
+            INSTALL_SWAY=false
             shift
             ;;
-        -W|--hyprland)
-            INSTALL_HYPRLAND=true
+        -W|--sway|--hyprland)
+            INSTALL_SWAY=true
             INSTALL_WALLPAPER=true
             INSTALL_ZSH=true
             INSTALL_NVIM=true
@@ -790,7 +776,7 @@ while [[ $# -gt 0 ]]; do
             INSTALL_PIPX=true
             INSTALL_UPSTREAMS=true
             INSTALL_ZSH=true
-            INSTALL_HYPRLAND=true
+            INSTALL_SWAY=true
             INSTALL_ALACRITTY=true
             INSTALL_NVIM=true
             INSTALL_WALLPAPER=true
@@ -820,7 +806,7 @@ check_non_root
 # Determine whether DNF packages should be installed
 RUN_PACKAGES=false
 
-if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_HYPRLAND" = true ] || [ "$INSTALL_DOCKER_CONTAINERS" = true ]; then
+if [ "$RUN_ALL" = true ] || [ "$RUN_BASIC" = true ] || [ ${#SELECTED_CATEGORIES[@]} -gt 0 ] || [ ${#CUSTOM_FILES[@]} -gt 0 ] || [ "$INSTALL_SWAY" = true ] || [ "$INSTALL_DOCKER_CONTAINERS" = true ]; then
     RUN_PACKAGES=true
 elif [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_WALLPAPER" = false ] && [ "$INSTALL_DOCKER_CONTAINERS" = false ] && [ "$SET_HOSTNAME" = false ]; then
     # Default invocation with no flags: install native packages (00-60)
@@ -861,14 +847,14 @@ if [ "$RUN_PACKAGES" = true ]; then
         for list_file in "${LISTS_DIR}"/*.list; do
             [ -f "$list_file" ] && TARGET_FILES+=("$list_file")
         done
-    elif [ "$INSTALL_HYPRLAND" = true ] && [ "$RUN_BASIC" = false ]; then
-        TARGET_FILES+=("${LISTS_DIR}/70-hyprland.list")
+    elif [ "$INSTALL_SWAY" = true ] && [ "$RUN_BASIC" = false ]; then
+        TARGET_FILES+=("${LISTS_DIR}/70-sway.list")
     elif [ "$INSTALL_DOCKER_CONTAINERS" = true ] && [ "$RUN_BASIC" = false ]; then
         TARGET_FILES+=("${LISTS_DIR}/60-docker.list")
     else
-        # Default or --basic: process 00-60 (skip 70-hyprland)
+        # Default or --basic: process 00-60 (skip 70-*)
         for list_file in "${LISTS_DIR}"/*.list; do
-            [[ "$list_file" =~ "70-hyprland" ]] && continue
+            [[ "$list_file" =~ "70-" ]] && continue
             [ -f "$list_file" ] && TARGET_FILES+=("$list_file")
         done
     fi
@@ -895,13 +881,6 @@ if [ "$RUN_PACKAGES" = true ]; then
     echo "===================================================="
     log_info "Total native DNF packages to process: ${BOLD}${#ALL_PACKAGES[@]}${NC}"
 
-    # Enable COPR if Hyprland packages are included
-    for f in "${TARGET_FILES[@]}"; do
-        if [[ "$f" =~ "70-hyprland" ]]; then
-            enable_hyprland_copr
-            break
-        fi
-    done
 
     if [ "$DRY_RUN" = true ]; then
         log_info "Dry run requested. Planned DNF command:"
@@ -944,8 +923,8 @@ if [ "$RUN_PACKAGES" = true ]; then
     done
 fi
 
-# Configure screensharing systemd target if Hyprland is requested
-if [ "$INSTALL_HYPRLAND" = true ]; then
+# Configure screensharing systemd target if Sway is requested
+if [ "$INSTALL_SWAY" = true ]; then
     configure_screensharing_systemd
 fi
 
@@ -964,9 +943,9 @@ if [ "$INSTALL_ZSH" = true ]; then
     deploy_zsh_config
 fi
 
-# Deploy Hyprland configuration if requested
-if [ "$INSTALL_HYPRLAND" = true ]; then
-    deploy_hyprland_config
+# Deploy Sway configuration if requested
+if [ "$INSTALL_SWAY" = true ]; then
+    deploy_sway_config
 fi
 
 # Deploy Alacritty configuration if requested
@@ -997,7 +976,7 @@ fi
 log_success "Pendora execution completed!"
 
 # Do not prompt for reboot if only wallpaper & profile logo was deployed
-if [ "$INSTALL_WALLPAPER" = true ] && [ "$RUN_ALL" = false ] && [ "$RUN_BASIC" = false ] && [ "$RUN_PACKAGES" = false ] && [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_HYPRLAND" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_DOCKER_CONTAINERS" = false ] && [ "$SET_HOSTNAME" = false ]; then
+if [ "$INSTALL_WALLPAPER" = true ] && [ "$RUN_ALL" = false ] && [ "$RUN_BASIC" = false ] && [ "$RUN_PACKAGES" = false ] && [ "$INSTALL_PIPX" = false ] && [ "$INSTALL_UPSTREAMS" = false ] && [ "$INSTALL_ZSH" = false ] && [ "$INSTALL_SWAY" = false ] && [ "$INSTALL_ALACRITTY" = false ] && [ "$INSTALL_NVIM" = false ] && [ "$INSTALL_DOCKER_CONTAINERS" = false ] && [ "$SET_HOSTNAME" = false ]; then
     REBOOT=false
 fi
 

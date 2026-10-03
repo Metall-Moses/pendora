@@ -132,7 +132,7 @@ A quick-reference summary for every tool category, standalone suite, and contain
 
 ---
 
-## 10. Hyprland Dynamic Desktop (`70-hyprland.list` & `hyprland/`)
+## 10. Sway Dynamic Desktop (`70-sway.list` & `sway/`)
 
 | Keybinding | Action |
 |---|---|
@@ -140,7 +140,15 @@ A quick-reference summary for every tool category, standalone suite, and contain
 | `SUPER + F` | Open Nautilus file manager |
 | `SUPER + B` | Open Browser (Firefox) |
 | `SUPER + SHIFT + Space` | Open Rofi application runner |
-| `SUPER + SHIFT + S` | Hyprshot interactive region screenshot |
-| `SUPER + SHIFT + V` | Clipboard history search menu (cliphist + rofi) |
+| `SUPER + Space` | Noctalia application launcher panel |
+| `SUPER + S` | Noctalia quick control center panel |
+| `SUPER + ,` | Noctalia settings panel |
+| `SUPER + SHIFT + S` | Interactive region screenshot (`grim` + `slurp`) |
+| `SUPER + SHIFT + V` | Clipboard history search menu (`cliphist` + `rofi`) |
 | `SUPER + Q` | Close active window |
+| `SUPER + SHIFT + Q` | Exit Sway session (`swaymsg exit`) |
 | `SUPER + 1` through `9` | Switch between persistent workspaces |
+| `SUPER + SHIFT + 1`..`9` | Move focused window to workspace 1..9 |
+| `SUPER + SHIFT + T` | Toggle floating mode for window |
+| `SUPER + SHIFT + F` | Toggle fullscreen mode for window |
+| `SUPER + Arrow Keys` | Move focus between windows (Left, Right, Up, Down) |

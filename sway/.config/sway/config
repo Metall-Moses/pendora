@@ -1,0 +1,164 @@
+# ~/.config/sway/config
+# Converted from pendora hyprland.lua. Noctalia wired in.
+
+#-----------------
+#---- STARTUP ----
+#-----------------
+exec systemctl --user start sway-session.target
+exec /usr/libexec/xdg-desktop-portal-wlr -r
+exec sleep 1 && /usr/libexec/xdg-desktop-portal-gtk
+
+#-----------------
+#---- MONITOR ----
+#-----------------
+output * resolution 1920x1080 position 0,0
+output * bg /usr/share/backgrounds/pendora/wallpaper.svg fill
+
+#------------------
+#---- PROGRAMS ----
+#------------------
+set $mod Mod4
+set $terminal alacritty
+set $fileManager nautilus
+set $browser firefox
+set $menu rofi -show run -show-icons
+set $ipc noctalia msg
+
+#---------------
+#---- INPUT ----
+#---------------
+# follow_mouse = 1 → focus follows mouse
+focus_follows_mouse yes
+# sensitivity = -0.65
+input type:pointer {
+    accel_profile flat
+    pointer_accel -0.65
+}
+# natural_scroll = true
+input type:touchpad {
+    natural_scroll enabled
+}
+# mouse_refocus = false → don't warp cursor on focus
+mouse_warping none
+# kb_layout = "se"
+input type:keyboard {
+    xkb_layout se
+}
+
+#-----------------------
+#---- LOOK AND FEEL ----
+#-----------------------
+# gaps_in = 5, gaps_out = 10
+gaps inner 5
+gaps outer 10
+
+# border_size = 4
+default_border pixel 4
+
+# rounding: sway does not support corner rounding natively (needs swayfx)
+# active_border: gradient not supported in stock sway; using first colour
+# #58E1FF (active), rgba(182d4daa) → #182d4d (inactive)
+client.focused          #58E1FF #285577 #ffffff #51A2DA #58E1FF
+client.unfocused        #182d4d #222222 #888888 #292d2e #182d4d
+client.focused_inactive #182d4d #5f676a #ffffff #484e50 #182d4d
+
+# active_opacity = 1.0 (sway uses per-app opacity rules; 1.0 is the default)
+# inactive_opacity = 0.9
+for_window [class=".*"] opacity 0.9
+for_window [app_id=".*"] opacity 0.9
+
+# shadow / blur: stock sway has no support; enable if using swayfx:
+# corner_radius 10
+# blur enable
+# blur_passes 2
+# shadows enable
+# shadow_color #080e18ee
+
+#-------------------
+#---- AUTOSTART ----
+#-------------------
+exec noctalia
+exec wl-paste --type text  --watch cliphist store
+exec wl-paste --type image --watch cliphist store
+
+#---------------------
+#---- KEYBINDINGS ----
+#---------------------
+# Apps
+bindsym $mod+t exec $terminal
+bindsym $mod+f exec $fileManager
+bindsym $mod+Shift+space exec $menu
+bindsym $mod+b exec $browser
+
+bindsym $mod+Shift+r exec pkill -f quickshell; sleep 0.3; qs -c noctalia-shell & disown
+# bindsym $mod+x exec hyprlock  # no direct equivalent; use swaylock
+bindsym $mod+Shift+s exec grim -g "$(slurp)" ~/Pictures/$(date +%F_%T).png
+
+# Clipboard history
+bindsym $mod+Shift+v exec cliphist list | rofi -dmenu | cliphist decode | wl-copy
+
+# Window management
+bindsym $mod+q kill
+
+bindsym $mod+Shift+Left  move left
+bindsym $mod+Shift+Right move right
+bindsym $mod+Shift+Up    move up
+bindsym $mod+Shift+Down  move down
+
+bindsym $mod+Left  focus left
+bindsym $mod+Right focus right
+bindsym $mod+Up    focus up
+bindsym $mod+Down  focus down
+
+bindsym $mod+Shift+t floating toggle
+bindsym $mod+Shift+f fullscreen toggle
+
+# Move/resize with mouse
+floating_modifier $mod normal
+
+# Exit / shutdown
+bindsym $mod+Shift+q exec swaymsg exit
+
+# Workspaces: $mod+[1-9] switch, $mod+Shift+[1-9] move window there
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+
+# Noctalia shell
+bindsym $mod+space      exec $ipc panel-toggle launcher
+bindsym $mod+s          exec $ipc panel-toggle control-center
+bindsym $mod+comma      exec $ipc settings-toggle
+bindsym XF86AudioRaiseVolume  exec $ipc volume-up
+bindsym XF86AudioLowerVolume  exec $ipc volume-down
+bindsym XF86AudioMute         exec $ipc volume-mute
+bindsym XF86MonBrightnessUp   exec $ipc brightness-up
+bindsym XF86MonBrightnessDown exec $ipc brightness-down
+
+#------------------------------
+#---- PERSISTENT WORKSPACES ----
+#------------------------------
+workspace 1 output *
+workspace 2 output *
+workspace 3 output *
+workspace 4 output *
+workspace 5 output *
+workspace 6 output *
+workspace 7 output *
+workspace 8 output *
+workspace 9 output *

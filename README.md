@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![QEMU/KVM](https://img.shields.io/badge/QEMU%2FKVM-FF6600?style=flat-square&logo=qemu&logoColor=white)](https://www.qemu.org/)
 [![Kali Tools](https://img.shields.io/badge/Kali%20Tools-557C94?style=flat-square&logo=kalilinux&logoColor=white)](https://www.kali.org/tools/)
-[![Hyprland](https://img.shields.io/badge/Hyprland-58E1FF?style=flat-square&logo=hyprland&logoColor=black)](https://hyprland.org/)
+[![Sway](https://img.shields.io/badge/Sway-000000?style=flat-square&logo=sway&logoColor=white)](https://swaywm.org/)
 [![Repo Size](https://img.shields.io/github/repo-size/sec-moose/pendora?style=flat-square)](https://github.com/sec-moose/pendora)
 
 > ⚠️ **Disclaimer & Notice**  
@@ -44,20 +44,18 @@ Pendora organizes tooling, services, and configuration into four dedicated tiers
 > 📖 **Tool Quick-Reference Guide**: For common startup commands, usage examples, keybindings, and dashboard URLs for every tool in this repository, see [assets/TOOL_REFERENCE.md](assets/TOOL_REFERENCE.md).
 ---
 
-## Desktop Choice: Retain GNOME or Deploy Hyprland
+## Desktop Choice: Retain GNOME or Deploy Sway
 Pendora provides full flexibility over your graphical environment. You can choose whether you want a headless/GNOME-compatible pentest environment or the full dynamic tiling desktop experience:
 
-> 💡 **Recommendation: Deploy Basic Install (`--basic`)**  
-> The current recommendation is to run the **Basic Install (`./install.sh --basic`)**. This configuration has been tested and verified on a baseline virtual machine of **4 vCPUs, 4 GB RAM, and a 25 GB disk**.  
-> For optimal performance and active penetration testing, the recommended virtual machine allocation is **8 vCPUs, minimum 8 GB RAM, and 35–50 GB total disk space**.  
-> The **Hyprland** desktop stack (`--all` / `--hyprland`) has not been thoroughly tested yet, and users are strongly advised to avoid it for now and retain the default Fedora GNOME desktop.
+> 💡 **Recommendation: Deploy Basic Install (`--basic`) or Full Sway Desktop (`--sway` / `--all`)**  
+> * **Basic Install (`./install.sh --basic`)**: Keeps your default Fedora desktop (e.g. GNOME) intact while setting up all penetration testing tools, pipx utilities, Docker containers, and Kali-styled terminal configurations.
+> * **Sway Desktop (`./install.sh --sway`)**: Deploys the lightweight, i3-compatible **Sway** Wayland tiling compositor paired with the modern **Noctalia** shell, Catppuccin Alacritty terminal, and screensharing portal services. Sway is **100% native in standard Fedora repositories** (zero external COPR repositories needed!).
 
 | Mode | Flag | Target User / Use Case | Included Components |
 |---|---|---|---|
-| **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Hyprland changes.** |
-| **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Hyprland). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Hyprland compositor, Noctalia shell, COPR repo, screensharing systemd targets, and `.config/hypr` dotfiles. |
-| **Hyprland Desktop** | `--hyprland` (`-W`) | **Deploy complete standalone dynamic tiling desktop.** | Enables COPR repo, installs `70-hyprland.list`, sets up screensharing systemd service, deploys Hyprland & Noctalia configuration (Pendora theme), Zsh, Neovim/LazyVim, Alacritty, wallpapers, and user profile branding. |
-
+| **Basic Install** | `--basic` (`-b`) | **Keep existing desktop** (e.g., Fedora GNOME). Best if you prefer standard desktop management or a pre-configured VM. | All pentest tools (00–60), Pipx tools, Docker containers, Kali Zsh prompt, Alacritty Catppuccin theme, Neovim/LazyVim, custom wallpapers, hostname. **Zero Sway changes.** |
+| **Full Desktop** | `--all` (`-a`) | **Deploy dynamic tiling desktop** (Sway). Transforms your VM into a full standalone tiling environment. | Everything in Basic **plus** Sway compositor, Noctalia shell, screensharing systemd targets, and `.config/sway` dotfiles. |
+| **Sway Desktop** | `--sway` (`-W`) | **Deploy complete standalone dynamic tiling desktop.** | Installs `70-sway.list`, sets up screensharing systemd service, deploys Sway & Noctalia configuration (Pendora theme), Zsh, Neovim/LazyVim, Alacritty, wallpapers, and user profile branding. |
 <p align="center">
   <img src="assets/Pendora-Gnome.png" width="100%" alt="Pendora GNOME Penetration Testing Desktop Environment" />
 </p>
@@ -113,7 +111,7 @@ pendora/
 │   ├── 40-auditing.list        # Password cracking & credential auditing (john, hashcat, hydra)
 │   ├── 50-wireless.list        # 802.11 wireless security (aircrack-ng, kismet, reaver)
 │   ├── 60-docker.list          # Docker daemon (moby-engine), CLI, and Docker Compose
-│   └── 70-hyprland.list        # Hyprland compositor, portals, Noctalia shell, dependencies
+│   └── 70-sway.list            # Sway tiling compositor, portals, Noctalia shell, dependencies
 ├── pipx-lists/                 # Isolated Python tool lists
 │   └── pipx-tools.list         # netexec (git), impacket, certipy-ad, bloodhound-ce, updog, etc.
 ├── upstreams/                  # Standalone third-party installers
@@ -121,8 +119,9 @@ pendora/
 │   └── README.md
 ├── alacritty/                  # Alacritty terminal & Catppuccin Macchiato theme
 │   └── .config/alacritty/      # alacritty.toml, catppuccin-macchiato.toml (Stow-compatible)
-├── hyprland/                   # Hyprland window manager & Noctalia bindings
-│   └── .config/hypr/           # hyprland.lua, .luarc.json (Stow-compatible)
+├── sway/                       # Sway tiling window manager & Noctalia shell
+│   └── .config/sway/           # config (Stow-compatible)
+│   └── .config/noctalia/       # config.toml, palettes/Pendora.json (Stow-compatible)
 ├── nvim/                       # Neovim, LazyVim & Catppuccin Macchiato theme
 │   └── .config/nvim/           # init.lua, lazy.lua, plugins/colorscheme.lua (Stow-compatible)
 └── zsh/                        # Shell styling & dotfiles
@@ -206,8 +205,8 @@ Install only the specific components you need:
 # Deploy only the Kali/Fedora Zsh configuration
 ./install.sh --zsh
 
-# Deploy complete Hyprland desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
-./install.sh --hyprland
+# Deploy complete Sway desktop stack, Noctalia shell, Zsh, Neovim, Alacritty & wallpapers
+./install.sh --sway
 
 # Deploy Alacritty terminal configuration & Catppuccin theme
 ./install.sh --alacritty
@@ -224,7 +223,7 @@ cd upstreams
 ./install-upstreams.sh portainer sysreptor bloodhound devtunnel responder hack-font
 ```
 
-### 4. Basic Installation (Recommended - Excluding Hyprland)
+### 4. Basic Installation (Recommended - Excluding Sway)
 Install the complete penetration testing environment (all security packages 00-60, Pipx tools, Upstreams/containers, Zsh, Alacritty, Neovim, Hostname) while keeping your existing desktop environment (e.g., GNOME) intact:
 
 ```bash
@@ -235,8 +234,8 @@ Install the complete penetration testing environment (all security packages 00-6
 ./install.sh --basic --yes
 ```
 
-### 5. Full Installation (Including Hyprland Desktop)
-Installs the complete toolkit and sets up the Hyprland tiling compositor stack (COPR repo, `70-hyprland.list`, screensharing systemd target, and `.config/hypr` configuration):
+### 5. Full Installation (Including Sway Desktop)
+Installs the complete toolkit and sets up the Sway tiling compositor stack (`70-sway.list`, screensharing systemd target, and `.config/sway` configuration):
 
 ```bash
 # Interactive run (prompts before DNF transaction)
@@ -245,7 +244,6 @@ Installs the complete toolkit and sets up the Hyprland tiling compositor stack (
 # Non-interactive automated run
 ./install.sh --all --yes
 ```
----
 
 ## Post-Installation
 
